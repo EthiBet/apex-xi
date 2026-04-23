@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex XI</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090c;--s1:#0f1118;--s2:#171a24;--s3:#1e2230;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --gold:#e8b84b;--gold2:#f5d07a;--gold-dim:rgba(232,184,75,0.12);
+  --green:#1db954;--green-dim:rgba(29,185,84,0.12);
+  --red:#e84b4b;--text:#eef0f5;--muted:#6b7280;--muted2:#9ca3af;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;line-height:1.5}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");opacity:0.4}
+
+/* SCREENS */
+.screen{display:none;position:fixed;inset:0;z-index:10;overflow-y:auto;overflow-x:hidden}
+.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
+#draftScreen{overflow:hidden}
+#draftScreen.active{justify-content:flex-start;padding:0;display:flex;flex-direction:column;height:100vh}
+
+/* HOME */
+#homeScreen{background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(232,184,75,0.18) 0%,transparent 65%),radial-gradient(ellipse 60% 40% at 80% 110%,rgba(29,185,84,0.08) 0%,transparent 60%),var(--bg)}
+.logo-mark{width:72px;height:72px;border-radius:14px;background:linear-gradient(135deg,var(--gold),#c8952a);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;color:#08090c;margin-bottom:1.2rem;letter-spacing:0.05em;box-shadow:0 8px 40px rgba(232,184,75,0.35);position:relative}
+.logo-mark::after{content:'';position:absolute;inset:-1px;border-radius:15px;background:linear-gradient(135deg,rgba(255,255,255,0.3),transparent);pointer-events:none}
+.game-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,12vw,7rem);line-height:0.9;letter-spacing:0.04em;background:linear-gradient(160deg,#fff 0%,var(--gold) 55%,var(--gold2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.3rem;text-align:center}
+.game-tagline{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted2);margin-bottom:2.5rem}
+
+/* INPUTS */
+.input-wrap{position:relative;width:100%;max-width:340px;margin-bottom:1rem}
+.input-wrap label{display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:0.4rem}
+input[type=text]{width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:0.75rem 1rem;color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none}
+input[type=text]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,184,75,0.15)}
+input[type=text]::placeholder{color:var(--muted)}
+
+/* BUTTONS */
+.btn{border:none;border-radius:10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:1.05rem;letter-spacing:0.06em;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-transform:uppercase}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#c8952a);color:#08090c;padding:0.8rem 2.2rem;box-shadow:0 4px 20px rgba(232,184,75,0.25)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,184,75,0.4)}
+.btn-gold:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2);padding:0.8rem 2.2rem}
+.btn-outline:hover{border-color:var(--muted2);background:var(--s2)}
+.btn-green{background:linear-gradient(135deg,#1db954,#148a3d);color:#fff;padding:0.8rem 2.2rem;box-shadow:0 4px 20px rgba(29,185,84,0.2)}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(29,185,84,0.35)}
+.btn-green:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+.btn-sm{padding:0.55rem 1.2rem;font-size:0.85rem;border-radius:8px}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border);padding:0.65rem 1.5rem;font-size:0.85rem}
+.btn-ghost:hover{border-color:var(--muted2);color:var(--text)}
+.btn-qr{background:var(--s2);color:var(--muted2);border:1px solid var(--border2);padding:0.5rem 1.2rem;font-size:0.78rem;border-radius:8px;letter-spacing:0.06em;margin-top:0.8rem}
+.btn-qr:hover{border-color:var(--muted2);color:var(--text)}
+
+/* CHOICE CARDS */
+.choice-row{display:flex;gap:14px;width:100%;max-width:340px;margin-bottom:1.5rem}
+.choice-card{flex:1;background:var(--s2);border:1.5px solid var(--border2);border-radius:14px;padding:1.2rem 1rem;cursor:pointer;transition:all 0.2s;text-align:center}
+.choice-card:hover{border-color:var(--gold-dim);background:var(--s3)}
+.choice-card.selected{border-color:var(--gold);background:var(--gold-dim)}
+.choice-card .cc-icon{font-size:1.8rem;margin-bottom:0.4rem}
+.choice-card .cc-label{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.08em;font-size:1rem}
+.choice-card .cc-sub{font-size:0.72rem;color:var(--muted);margin-top:2px}
+
+/* FORMATION PICKER */
+.formation-row{display:flex;gap:10px;margin-bottom:1.5rem}
+.form-btn{background:var(--s2);border:1.5px solid var(--border2);border-radius:10px;padding:0.8rem 1.2rem;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.05em;min-width:80px}
+.form-btn:hover{border-color:var(--gold);background:var(--s3)}
+.form-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold)}
+.form-sub{font-family:'Barlow',sans-serif;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+
+/* LOBBY */
+#lobbyScreen{background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(232,184,75,0.1) 0%,transparent 60%),var(--bg)}
+.room-code-display{background:var(--s2);border:1.5px solid var(--border2);border-radius:14px;padding:1.2rem 2rem;margin:1rem 0;text-align:center}
+.room-code-display .code{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:0.2em;color:var(--gold);line-height:1}
+.room-code-display .code-label{font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem}
+.player-slots{display:flex;gap:12px;width:100%;max-width:380px;margin:1.2rem 0}
+.player-slot{flex:1;background:var(--s2);border:1.5px dashed var(--border2);border-radius:12px;padding:1rem;text-align:center;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all 0.3s}
+.player-slot.filled{border-style:solid;border-color:var(--green);background:var(--green-dim)}
+.player-slot .ps-name{font-weight:600;font-size:0.9rem}
+.player-slot .ps-sub{font-size:0.7rem;color:var(--muted)}
+.player-slot .ps-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background 0.3s}
+.player-slot.filled .ps-dot{background:var(--green)}
+.lobby-status{font-size:0.82rem;color:var(--muted2);text-align:center;background:var(--s2);border-radius:8px;padding:0.6rem 1.2rem;border:1px solid var(--border);margin-bottom:1rem;max-width:340px}
+.lobby-status.ready{color:var(--green);border-color:rgba(29,185,84,0.3)}
+.pulse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:6px;vertical-align:middle;animation:pdot 1.4s ease-in-out infinite}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
+
+/* JOIN SCREEN */
+#joinScreen{background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(29,185,84,0.08) 0%,transparent 60%),var(--bg)}
+.back-btn{position:absolute;top:1.2rem;left:1.2rem;background:transparent;border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--muted2);font-size:0.8rem;cursor:pointer;font-family:'Barlow',sans-serif;transition:all 0.2s;letter-spacing:0.04em}
+.back-btn:hover{border-color:var(--muted2);color:var(--text)}
+.error-msg{font-size:0.8rem;color:var(--red);margin-top:0.4rem;min-height:1.2em}
+
+/* QR SCREEN */
+#qrScreen{background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(232,184,75,0.08) 0%,transparent 60%),var(--bg)}
+.qr-box{background:var(--s2);border:1.5px solid var(--border2);border-radius:18px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1rem;margin:1rem 0;width:100%;max-width:280px}
+.qr-box img{width:200px;height:200px;border-radius:10px;background:var(--s3);display:block}
+.qr-url{font-size:0.65rem;color:var(--muted);word-break:break-all;text-align:center;max-width:220px;line-height:1.5;background:var(--s3);border-radius:8px;padding:6px 10px;border:1px solid var(--border)}
+.qr-note{font-size:0.72rem;color:var(--muted);text-align:center;max-width:260px;line-height:1.6}
+
+/* DRAFT TOP BAR */
+.draft-top-bar{width:100%;background:var(--s1);border-bottom:1px solid var(--border);padding:0.7rem 1.2rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100}
+.draft-top-bar .dtb-left{display:flex;align-items:center;gap:12px}
+.dtb-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.05em;color:var(--gold)}
+.progress-pill{background:var(--s3);border-radius:20px;padding:3px 12px;font-size:0.75rem;color:var(--muted2);font-family:'Barlow Condensed',sans-serif;letter-spacing:0.06em;border:1px solid var(--border)}
+.progress-pill span{color:var(--gold);font-weight:600}
+.opp-pill{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:0.75rem;color:var(--muted2)}
+.opp-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.opp-dot.live{background:var(--green);animation:pdot 1.4s infinite}
+
+/* DRAFT BODY */
+.draft-body{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0;overflow:hidden}
+@media(max-width:820px){
+  .draft-body{grid-template-columns:1fr;grid-template-rows:50vh auto;min-height:0}
+  #draftScreen.active{overflow-y:auto}
+  .pitch-wrap{height:50vh;min-height:260px}
+  .selection-panel{height:50vh;border-top:1px solid var(--border);border-left:none}
+}
+
+/* PITCH */
+.pitch-wrap{position:relative;overflow:hidden;background:linear-gradient(180deg,#1a5c2e 0%,#1f6e35 8%,#1a5c2e 16%,#1f6e35 24%,#1a5c2e 32%,#1f6e35 40%,#1a5c2e 48%,#1f6e35 56%,#1a5c2e 64%,#1f6e35 72%,#1a5c2e 80%,#1f6e35 88%,#1a5c2e 96%,#1f6e35 100%)}
+.pitch-lines{position:absolute;inset:0;pointer-events:none}
+.pitch-lines svg{width:100%;height:100%}
+
+/* SLOTS */
+.pslot{position:absolute;transform:translate(-50%,-50%);width:56px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform 0.15s;user-select:none}
+.pslot:hover{transform:translate(-50%,-50%) scale(1.08)}
+.pslot-img{width:56px;height:72px;border-radius:8px;background:rgba(0,0,0,0.45);border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(2px)}
+.pslot-img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:6px}
+.pslot-img .pos-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.7rem;letter-spacing:0.08em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.8)}
+.pslot-label{font-family:'Barlow Condensed',sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.06em;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.6);border-radius:4px;padding:1px 5px;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis}
+.pslot.available .pslot-img{border-color:var(--gold);animation:slotpulse 1.8s ease-in-out infinite}
+.pslot.available:hover .pslot-img{box-shadow:0 0 16px rgba(232,184,75,0.6);animation:none}
+.pslot.filled .pslot-img{border-color:rgba(255,255,255,0.4)}
+.pslot.active .pslot-img{border-color:var(--gold2);box-shadow:0 0 20px rgba(232,184,75,0.7);animation:none}
+@keyframes slotpulse{0%,100%{box-shadow:0 0 0 0 rgba(232,184,75,0.5)}50%{box-shadow:0 0 0 6px rgba(232,184,75,0)}}
+
+/* SELECTION PANEL */
+.selection-panel{background:var(--s1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;height:100%;min-height:0}
+.sp-header{padding:1rem 1rem 0.6rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.sp-title{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:1rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted2);margin-bottom:4px}
+.sp-pos{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);line-height:1}
+.sp-hint{font-size:0.78rem;color:var(--muted);margin-top:4px}
+.league-filters{padding:8px 1rem;border-bottom:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.lf-chip{padding:3px 10px;border-radius:20px;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;cursor:pointer;transition:all 0.15s;border:1px solid var(--border2);background:var(--s3);color:var(--muted2);text-transform:uppercase}
+.lf-chip.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+.lf-chip:hover:not(.on){border-color:var(--muted2);color:var(--text)}
+.sp-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--s3) transparent}
+.sp-idle{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;text-align:center;color:var(--muted)}
+.sp-idle .idle-icon{font-size:2.5rem;margin-bottom:0.8rem;opacity:0.4}
+.sp-idle p{font-size:0.85rem}
+
+/* PICK CARD */
+.pick-card{background:var(--s2);border:1.5px solid var(--border);border-radius:11px;padding:0.65rem 0.75rem;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+.pick-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.02));pointer-events:none}
+.pick-card:hover{border-color:var(--gold);transform:translateX(3px);background:var(--s3);box-shadow:0 4px 16px rgba(232,184,75,0.1)}
+.pick-card-img{width:48px;height:62px;border-radius:7px;object-fit:cover;flex-shrink:0;background:var(--s3);border:1px solid var(--border2)}
+.pick-card-info{flex:1;min-width:0}
+.pcn{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcm{font-size:0.7rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px}
+.pc-league{background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.62rem;font-weight:600;letter-spacing:0.05em;color:var(--muted2);text-transform:uppercase}
+.pick-card-rating{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--gold);flex-shrink:0;line-height:1}
+
+/* WAITING OVERLAY */
+.waiting-overlay{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:12px}
+.waiting-overlay h3{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--muted2)}
+.waiting-overlay p{font-size:0.85rem;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESULT */
+#resultScreen{background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(232,184,75,0.15) 0%,transparent 55%),var(--bg)}
+.result-trophy{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,5.5rem);letter-spacing:0.04em;line-height:1;text-align:center;margin-bottom:0.3rem}
+.result-trophy.win{background:linear-gradient(135deg,#fff 0%,var(--gold) 50%,var(--gold2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.result-trophy.draw{color:var(--muted2)}
+.result-score-box{display:flex;align-items:center;gap:1.5rem;background:var(--s2);border:1px solid var(--border2);border-radius:18px;padding:1.2rem 2.5rem;margin:1.2rem 0}
+.rsc{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rsc-user{font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2)}
+.rsc-goals{font-family:'Bebas Neue',sans-serif;font-size:4rem;line-height:1}
+.rsc-goals.hi{color:var(--gold)}
+.rsvs{font-size:1rem;color:var(--muted);font-weight:300}
+.result-stats-row{display:flex;gap:10px;margin-bottom:1.2rem;flex-wrap:wrap;justify-content:center}
+.rst-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:0.7rem 1rem;text-align:center;min-width:80px}
+.rst-val{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--gold);line-height:1}
+.rst-lbl{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-top:2px}
+.result-teams{display:flex;gap:1.5rem;width:100%;max-width:600px;margin-bottom:1.5rem}
+.result-team{flex:1;display:flex;flex-direction:column;gap:4px}
+.rt-header{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:0.8rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.rt-player{display:flex;align-items:center;gap:7px;background:var(--s2);border-radius:8px;padding:4px 8px;border:1px solid var(--border)}
+.rt-player img{width:32px;height:41px;border-radius:5px;object-fit:cover;background:var(--s3);flex-shrink:0}
+.rt-pname{font-size:0.75rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.rt-ppos{font-size:0.62rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;flex-shrink:0}
+.rt-prating{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold);flex-shrink:0}
+.result-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ░░░ HOME ░░░ -->
+<div id="homeScreen" class="screen active">
+  <div class="logo-mark">XI</div>
+  <div class="game-title">APEX XI</div>
+  <div class="game-tagline">Draft. Compete. Dominate.</div>
+  <div class="input-wrap">
+    <label>Your Username</label>
+    <input type="text" id="usernameInput" placeholder="Enter your name..." maxlength="20" autocomplete="off">
+  </div>
+  <div class="choice-row">
+    <div class="choice-card" id="ccHost" onclick="selectMode('host')">
+      <div class="cc-icon">🏟️</div>
+      <div class="cc-label">Host</div>
+      <div class="cc-sub">Create a room</div>
+    </div>
+    <div class="choice-card" id="ccJoin" onclick="selectMode('join')">
+      <div class="cc-icon">🔗</div>
+      <div class="cc-label">Join</div>
+      <div class="cc-sub">Enter a code</div>
+    </div>
+  </div>
+  <button class="btn btn-gold" id="homeNextBtn" onclick="homeNext()" disabled>Continue</button>
+  <div class="error-msg" id="homeError"></div>
+  <button class="btn btn-qr" onclick="showQR()">📱 Share / QR Code</button>
+</div>
+
+<!-- ░░░ QR SCREEN ░░░ -->
+<div id="qrScreen" class="screen">
+  <button class="back-btn" onclick="showScreen('homeScreen')">← Back</button>
+  <div class="logo-mark" style="width:44px;height:44px;font-size:13px;margin-bottom:0.8rem">XI</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:0.2rem">Share Apex XI</div>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">Scan to open on another device</div>
+  <div class="qr-box">
+    <img id="qrImg" src="" alt="QR Code" onerror="this.style.opacity='0.3'">
+    <div class="qr-url" id="qrUrl"></div>
+  </div>
+  <p class="qr-note">This file must be hosted at a URL (e.g. GitHub Pages, a local server) for the QR code to work across devices. The multiplayer itself works across devices as long as both players are connected to the internet.</p>
+</div>
+
+<!-- ░░░ LOBBY (HOST) ░░░ -->
+<div id="lobbyScreen" class="screen">
+  <button class="back-btn" onclick="goHome()">← Back</button>
+  <div class="logo-mark" style="width:44px;height:44px;font-size:13px;margin-bottom:0.8rem">XI</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:0.2rem">Room Lobby</div>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:1.2rem">Share this code with your opponent</div>
+  <div class="room-code-display">
+    <div class="code-label">Room Code</div>
+    <div class="code" id="lobbyCode">—</div>
+  </div>
+  <div class="player-slots">
+    <div class="player-slot filled" id="slot0">
+      <div class="ps-dot"></div>
+      <div class="ps-name" id="slotName0">—</div>
+      <div class="ps-sub" id="slotSub0">Host</div>
+    </div>
+    <div class="player-slot" id="slot1">
+      <div class="ps-dot"></div>
+      <div class="ps-name" id="slotName1">Waiting...</div>
+      <div class="ps-sub">Guest</div>
+    </div>
+  </div>
+  <div style="font-size:0.78rem;color:var(--muted2);margin-bottom:0.6rem;text-align:center;letter-spacing:0.05em;text-transform:uppercase">Choose Your Formation</div>
+  <div class="formation-row" id="lobbyFormationRow">
+    <div class="form-btn" data-f="4-3-3" onclick="pickFormation(this,'lobby')">4-3-3<div class="form-sub">Attack</div></div>
+    <div class="form-btn" data-f="4-4-2" onclick="pickFormation(this,'lobby')">4-4-2<div class="form-sub">Classic</div></div>
+    <div class="form-btn" data-f="4-2-3-1" onclick="pickFormation(this,'lobby')">4-2-3-1<div class="form-sub">Control</div></div>
+  </div>
+  <div class="lobby-status" id="lobbyStatus"><span class="pulse-dot"></span>Waiting for opponent to join...</div>
+  <button class="btn btn-gold" id="lobbyStartBtn" onclick="startDraft()" disabled>Start Draft</button>
+</div>
+
+<!-- ░░░ JOIN SCREEN ░░░ -->
+<div id="joinScreen" class="screen">
+  <button class="back-btn" onclick="leaveJoinScreen()">← Back</button>
+  <div class="logo-mark" style="width:44px;height:44px;font-size:13px;margin-bottom:0.8rem">XI</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:1.5rem">Join a Room</div>
+  <div class="input-wrap">
+    <label>Room Code</label>
+    <input type="text" id="joinCodeInput" placeholder="Enter 4-digit code..." maxlength="4" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+  </div>
+  <div style="font-size:0.78rem;color:var(--muted2);margin:0.8rem 0 0.6rem;text-align:center;letter-spacing:0.05em;text-transform:uppercase">Choose Your Formation</div>
+  <div class="formation-row" id="joinFormationRow">
+    <div class="form-btn" data-f="4-3-3" onclick="pickFormation(this,'join')">4-3-3<div class="form-sub">Attack</div></div>
+    <div class="form-btn" data-f="4-4-2" onclick="pickFormation(this,'join')">4-4-2<div class="form-sub">Classic</div></div>
+    <div class="form-btn" data-f="4-2-3-1" onclick="pickFormation(this,'join')">4-2-3-1<div class="form-sub">Control</div></div>
+  </div>
+  <button class="btn btn-green" id="joinBtn" onclick="joinRoom()" style="margin-top:1rem" disabled>Join Room</button>
+  <div class="error-msg" id="joinError"></div>
+</div>
+
+<!-- ░░░ DRAFT SCREEN ░░░ -->
+<div id="draftScreen" class="screen">
+  <div class="draft-top-bar">
+    <div class="dtb-left">
+      <span class="dtb-title">APEX XI</span>
+      <span class="progress-pill"><span id="draftFilled">0</span>/11</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="opp-pill">
+        <div class="opp-dot live" id="oppDot"></div>
+        <span id="oppProgressLabel">Opponent: 0/11</span>
+      </div>
+    </div>
+  </div>
+  <div class="draft-body">
+    <div class="pitch-wrap" id="pitchWrap">
+      <div class="pitch-lines">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="2" width="94" height="96" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.4"/>
+          <line x1="3" y1="50" x2="97" y2="50" stroke="rgba(255,255,255,0.12)" stroke-width="0.4"/>
+          <circle cx="50" cy="50" r="10" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.4"/>
+          <circle cx="50" cy="50" r="0.8" fill="rgba(255,255,255,0.2)"/>
+          <rect x="25" y="2" width="50" height="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.4"/>
+          <rect x="37" y="2" width="26" height="7" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4"/>
+          <rect x="25" y="80" width="50" height="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.4"/>
+          <rect x="37" y="91" width="26" height="7" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4"/>
+        </svg>
+      </div>
+      <div id="pitchSlots" style="position:absolute;inset:0"></div>
+    </div>
+    <div class="selection-panel" id="selPanel">
+      <div class="sp-header">
+        <div class="sp-title" id="spTitle">Select a Position</div>
+        <div class="sp-pos" id="spPos">–</div>
+        <div class="sp-hint" id="spHint">Tap any glowing slot on the pitch</div>
+      </div>
+      <div class="league-filters" id="leagueFilters" style="display:none"></div>
+      <div id="spContent" class="sp-cards">
+        <div class="sp-idle"><div class="idle-icon">⚽</div><p>Click any glowing slot<br>on the pitch to pick a player</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ░░░ RESULT SCREEN ░░░ -->
+<div id="resultScreen" class="screen">
+  <div class="result-trophy" id="resultTrophy"></div>
+  <div style="font-size:0.8rem;color:var(--muted2);letter-spacing:0.1em;margin-bottom:0.5rem" id="resultSub"></div>
+  <div class="result-score-box">
+    <div class="rsc"><div class="rsc-user" id="r_myName">You</div><div class="rsc-goals" id="r_myGoals">0</div></div>
+    <div class="rsvs">vs</div>
+    <div class="rsc"><div class="rsc-user" id="r_oppName">Opponent</div><div class="rsc-goals" id="r_oppGoals">0</div></div>
+  </div>
+  <div class="result-stats-row">
+    <div class="rst-card"><div class="rst-val" id="r_ovr">—</div><div class="rst-lbl">Avg OVR</div></div>
+    <div class="rst-card"><div class="rst-val" id="r_chem">—</div><div class="rst-lbl">Chemistry</div></div>
+    <div class="rst-card"><div class="rst-val" id="r_score">—</div><div class="rst-lbl">My Score</div></div>
+    <div class="rst-card"><div class="rst-val" id="r_opp_score">—</div><div class="rst-lbl">Opp Score</div></div>
+  </div>
+  <div class="result-teams" id="resultTeams"></div>
+  <div class="result-btns">
+    <button class="btn btn-gold" onclick="playAgain()">Play Again</button>
+    <button class="btn btn-ghost" onclick="goHome()">Home</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  PLAYERS
+// ═══════════════════════════════════════════════
+const PLAYERS=[
+  {name:"Thibaut Courtois",pos:"GK",rating:89,img:"https://i.postimg.cc/PJHbNFx7/ezgif-8bfd7372ff671f6e.png",league:"La Liga"},
+  {name:"Alisson",pos:"GK",rating:89,img:"https://i.postimg.cc/9FKMpwd8/ezgif-8722324aef2eb61a.png",league:"Prem"},
+  {name:"Marc-Andre ter Stegen",pos:"GK",rating:89,img:"https://i.postimg.cc/rmZcw7Qq/ezgif-893a84ce01090a48.png",league:"La Liga"},
+  {name:"Emiliano Martinez",pos:"GK",rating:88,img:"https://i.postimg.cc/x1G2zXtp/ezgif-8029d353769fde33.png",league:"Prem"},
+  {name:"Mike Maignan",pos:"GK",rating:88,img:"https://i.postimg.cc/htKSM8zR/ezgif-8618e209dce2a8a8.png",league:"Serie A"},
+  {name:"Gianluigi Donnarumma",pos:"GK",rating:89,img:"https://i.postimg.cc/zvwsRMk8/ezgif-89158c5eabf87435.png",league:"Prem"},
+  {name:"Edwin van der Sar",pos:"GK",rating:88,img:"https://i.postimg.cc/jjkkwK01/ezgif-836c117fcb427714.png",league:"Icon"},
+  {name:"Lev Yashin",pos:"GK",rating:93,img:"https://i.postimg.cc/vMXywnJS/ezgif-813614cd23a5cbda.png",league:"Icon"},
+  {name:"Ederson",pos:"GK",rating:88,img:"https://i.postimg.cc/xT0746RL/ezgif-8326311acd03fb1f.png",league:"Prem"},
+  {name:"Gianluigi Buffon",pos:"GK",rating:92,img:"https://i.postimg.cc/ncB8ys8y/ezgif-83c8b43c5fecbd8b.png",league:"Icon"},
+  {name:"Unai Simon",pos:"GK",rating:90,img:"https://i.postimg.cc/JhtWFKMp/ezgif-7eb908664d03118b.png",league:"La Liga"},
+  {name:"Manuel Neuer",pos:"GK",rating:86,img:"https://i.postimg.cc/g2T7xpb3/ezgif-7ed7905f4711a810.png",league:"Bundesliga"},
+  {name:"William Saliba",pos:"CB",rating:90,img:"https://i.postimg.cc/tJpSKCWL/ezgif-7b042b156302cc2d.png",league:"Prem"},
+  {name:"Antonio Rudiger",pos:"CB",rating:91,img:"https://i.postimg.cc/PqDSN84t/ezgif-751c0e63571ff616.png",league:"La Liga"},
+  {name:"Ruben Dias",pos:"CB",rating:86,img:"https://i.postimg.cc/cLgm58PB/ezgif-7ff8d3cba4e30b56.png",league:"Prem"},
+  {name:"Virgil van Dijk",pos:"CB",rating:91,img:"https://i.postimg.cc/DwXrc3bj/ezgif-7892a2f6f6b1588c.png",league:"Prem"},
+  {name:"Gabriel Magalhaes",pos:"CB",rating:89,img:"https://i.postimg.cc/0NCJtk5m/ezgif-778c1e4236a967a7.png",league:"Prem"},
+  {name:"Alessandro Bastoni",pos:"CB",rating:87,img:"https://i.postimg.cc/wjpXFb5b/ezgif-74ba4ab51037fae6.png",league:"Serie A"},
+  {name:"Eder Militao",pos:"CB",rating:88,img:"https://i.postimg.cc/KcT3VDYt/ezgif-7c356ef45afc69b0.png",league:"La Liga"},
+  {name:"Marquinhos",pos:"CB",rating:88,img:"https://i.postimg.cc/d3QM89H8/ezgif-7f40357e51a08e9f.png",league:"Ligue 1"},
+  {name:"Paolo Maldini",pos:"CB",rating:94,img:"https://i.postimg.cc/DyZFRffh/ezgif-8318df08e55112d3.png",league:"Icon"},
+  {name:"Cristian Romero",pos:"CB",rating:86,img:"https://i.postimg.cc/RV3s28Hw/ezgif-766f6cc574536d2f.png",league:"Prem"},
+  {name:"Alphonso Davies",pos:"LB",rating:89,img:"https://i.postimg.cc/FKmQrmbv/ezgif-563b18c34ed13b2a.png",league:"Bundesliga"},
+  {name:"Theo Hernandez",pos:"LB",rating:88,img:"https://i.postimg.cc/9XS54yPT/ezgif-5a7d95923ba6a2bf.png",league:"Serie A"},
+  {name:"Andrew Robertson",pos:"LB",rating:86,img:"https://i.postimg.cc/wTHPRFyg/ezgif-5d44db86fc6851a0.png",league:"Prem"},
+  {name:"Nuno Mendes",pos:"LB",rating:86,img:"https://i.postimg.cc/rpdY2Pb7/ezgif-5e7346ce0acf0fe6.png",league:"Ligue 1"},
+  {name:"Federico Dimarco",pos:"LB",rating:85,img:"https://i.postimg.cc/qM5sHvdS/ezgif-5676348248050a5b.png",league:"Serie A"},
+  {name:"Ferland Mendy",pos:"LB",rating:87,img:"https://i.postimg.cc/SjbRG39g/ezgif-2785363519b54f70.png",league:"La Liga"},
+  {name:"Roberto Carlos",pos:"LB",rating:91,img:"https://i.postimg.cc/W1YhCYpx/ezgif-6a81cf6b72842769.png",league:"Icon"},
+  {name:"Trent Alexander-Arnold",pos:"RB",rating:87,img:"https://i.postimg.cc/MTfmM84V/ezgif-4500625d719726b2.png",league:"Prem"},
+  {name:"Achraf Hakimi",pos:"RB",rating:89,img:"https://i.postimg.cc/RFJL6z8f/ezgif-496b3d50b2a4a800.png",league:"Ligue 1"},
+  {name:"Dani Carvajal",pos:"RB",rating:89,img:"https://i.postimg.cc/B6m7RwnS/ezgif-29de49f48c1adbf9.png",league:"La Liga"},
+  {name:"Kyle Walker",pos:"RB",rating:89,img:"https://i.postimg.cc/1tv7bY3s/ezgif-29e22c80b8d6f637.png",league:"Prem"},
+  {name:"Jules Kounde",pos:"RB",rating:88,img:"https://i.postimg.cc/gJgt1B2d/ezgif-2f0ac56835ad3cd5.png",league:"La Liga"},
+  {name:"Ben White",pos:"RB",rating:83,img:"https://i.postimg.cc/C1cr96xk/ezgif-2fd705eaaeb65286.png",league:"Prem"},
+  {name:"Reece James",pos:"RB",rating:85,img:"https://i.postimg.cc/B6m7Rwn5/ezgif-208a856030506338.png",league:"Prem"},
+  {name:"Diogo Dalot",pos:"RB",rating:87,img:"https://i.postimg.cc/zv32NSyd/ezgif-2d8dc754815f8a32.png",league:"Prem"},
+  {name:"Denzel Dumfries",pos:"RB",rating:89,img:"https://i.postimg.cc/nrMSxYXw/ezgif-249ce46eaa747dc2.png",league:"Serie A"},
+  {name:"Cafu",pos:"RB",rating:91,img:"https://i.postimg.cc/4dP0JcKk/ezgif-535282b8c7a858b0.png",league:"Icon"},
+  {name:"Rodri",pos:"CDM",rating:91,img:"https://i.postimg.cc/Bb5mQNxk/ezgif-7490a71c402789a0.png",league:"Prem"},
+  {name:"Declan Rice",pos:"CDM",rating:91,img:"https://i.postimg.cc/sxPTDKYX/ezgif-723623c1e43f68e0.png",league:"Prem"},
+  {name:"N'Golo Kanté",pos:"CDM",rating:92,img:"https://i.postimg.cc/vT70HXrT/ezgif-72eb7769f164500c.png",league:"Super Lig"},
+  {name:"Joshua Kimmich",pos:"CDM",rating:90,img:"https://i.postimg.cc/T1jtYQVh/ezgif-702d40675007cf78.png",league:"Bundesliga"},
+  {name:"Casemiro",pos:"CDM",rating:91,img:"https://i.postimg.cc/CMbPNMWc/ezgif-763ad40b216ed49e.png",league:"Prem"},
+  {name:"Hakan Calhanoglu",pos:"CDM",rating:87,img:"https://i.postimg.cc/wTHWb8zt/ezgif-7cfc5c60de4f938f.png",league:"Serie A"},
+  {name:"Claude Makélélé",pos:"CDM",rating:87,img:"https://i.postimg.cc/GmzLgb14/ezgif-2b8a8e1db9d2d883.png",league:"Icon"},
+  {name:"Granit Xhaka",pos:"CDM",rating:89,img:"https://i.postimg.cc/RZGVnBSW/ezgif-70e7f9c26f2428cc.png",league:"Bundesliga"},
+  {name:"Douglas Luiz",pos:"CDM",rating:90,img:"https://i.postimg.cc/jSvdJbxC/ezgif-78a059729abec2ed.png",league:"Serie A"},
+  {name:"Federico Valverde",pos:"CM",rating:91,img:"https://i.postimg.cc/MKRXxJxg/ezgif-45bb08b6ed639a2e.png",league:"La Liga"},
+  {name:"Vitinha",pos:"CM",rating:91,img:"https://i.postimg.cc/dtdDvcvb/ezgif-4591b7f1624c7d6c.png",league:"Ligue 1"},
+  {name:"Alexis Mac Allister",pos:"CM",rating:89,img:"https://i.postimg.cc/pX8yxMx7/ezgif-47a1dbb7942418cc.png",league:"Prem"},
+  {name:"Bruno Guimarães",pos:"CM",rating:89,img:"https://i.postimg.cc/ZK30ZzZ2/ezgif-433c713a21ca0a17.png",league:"Prem"},
+  {name:"Pedri",pos:"CM",rating:90,img:"https://i.postimg.cc/G2Vhwq5V/ezgif-406145537d62ba10.png",league:"La Liga"},
+  {name:"Luka Modric",pos:"CM",rating:89,img:"https://i.postimg.cc/hj6PWpYc/ezgif-4c10848e536eab74.png",league:"La Liga"},
+  {name:"Toni Kroos",pos:"CM",rating:90,img:"https://i.postimg.cc/cH24yXzC/ezgif-45d468a82da66027.png",league:"Icon"},
+  {name:"Enzo Fernandez",pos:"CM",rating:91,img:"https://i.postimg.cc/FHNF4fTc/ezgif-4ee0c8effa078c0d.png",league:"Prem"},
+  {name:"Frenkie de Jong",pos:"CM",rating:89,img:"https://i.postimg.cc/Z5HbKTQs/ezgif-45fa432bd94b864b.png",league:"La Liga"},
+  {name:"Bernardo Silva",pos:"CM",rating:87,img:"https://i.postimg.cc/VkgfLYhG/ezgif-4fb99b75e3af7f11.png",league:"Prem"},
+  {name:"Lothar Matthäus",pos:"CM",rating:90,img:"https://i.postimg.cc/13QBfXgy/ezgif-8ab27c5210a49e9e.png",league:"Icon"},
+  {name:"Eduardo Camavinga",pos:"CM",rating:87,img:"https://i.postimg.cc/0ynk284L/ezgif-49f47ee516a245a2.png",league:"La Liga"},
+  {name:"Florian Wirtz",pos:"CAM",rating:89,img:"https://i.postimg.cc/qvVQwKkM/ezgif-44438528fff4aacc.png",league:"Bundesliga"},
+  {name:"Kevin De Bruyne",pos:"CAM",rating:89,img:"https://i.postimg.cc/mgfVj9bb/ezgif-408d4349ce1c938e.png",league:"Serie A"},
+  {name:"Mario Götze",pos:"CAM",rating:88,img:"https://i.postimg.cc/PqdyskpQ/ezgif-4c41c6eb46d815a7.png",league:"Bundesliga"},
+  {name:"Cole Palmer",pos:"CAM",rating:88,img:"https://i.postimg.cc/dVPn6CqQ/ezgif-4073cfabdc3ba4dc.png",league:"Prem"},
+  {name:"Zinedine Zidane",pos:"CAM",rating:94,img:"https://i.postimg.cc/kX5h7Bbg/ezgif-838bc0a3ce85ed67.png",league:"Icon"},
+  {name:"Xavi Simons",pos:"CAM",rating:88,img:"https://i.postimg.cc/zGC7cfBB/ezgif-4633787e9408a28f.png",league:"Bundesliga"},
+  {name:"Bruno Fernandes",pos:"CAM",rating:88,img:"https://i.postimg.cc/4x6PS3dn/ezgif-46adfe5be0380b83.png",league:"Prem"},
+  {name:"Diego Armando Maradona",pos:"CAM",rating:96,img:"https://i.postimg.cc/76gjJdHr/ezgif-814f69f8b20ffd8f.png",league:"Icon"},
+  {name:"Dani Olmo",pos:"CAM",rating:89,img:"https://i.postimg.cc/1zyBhZnp/ezgif-45223eddf777b3b4.png",league:"La Liga"},
+  {name:"Pele",pos:"CAM",rating:95,img:"https://i.postimg.cc/ZnPZZ0B6/ezgif-8fe37aaf73d38e56.png",league:"Icon"},
+  {name:"Kingsley Coman",pos:"LM",rating:87,img:"https://i.postimg.cc/8CBbYwNZ/ezgif-78cd6944b5f0cce4.png",league:"Bundesliga"},
+  {name:"Luis Diaz",pos:"LM",rating:87,img:"https://i.postimg.cc/XY2p6TDn/ezgif-25d90a9195318f9d.png",league:"Prem"},
+  {name:"Marcus Rashford",pos:"LM",rating:90,img:"https://i.postimg.cc/1zZHMbhM/ezgif-70fcaab936ee2e53.png",league:"Prem"},
+  {name:"Alejandro Garnacho",pos:"LM",rating:89,img:"https://i.postimg.cc/3rpwQqPW/ezgif-71ee3973af3c7aca.png",league:"Prem"},
+  {name:"Cody Gakpo",pos:"LM",rating:89,img:"https://i.postimg.cc/9QxrHvNC/ezgif-27788da793887e4f.png",league:"Prem"},
+  {name:"Eden Hazard",pos:"LM",rating:92,img:"https://i.postimg.cc/XvzV3xJc/ezgif-299b7b0746a15f9b.png",league:"Icon"},
+  {name:"Kaoru Mitoma",pos:"LM",rating:87,img:"https://i.postimg.cc/1zf4mJL3/ezgif-2b098a99d8a78d84.png",league:"Prem"},
+  {name:"Leroy Sane",pos:"RM",rating:90,img:"https://i.postimg.cc/7Yfh4B0P/ezgif-8ce12a2cb95c4ff1.png",league:"Super Lig"},
+  {name:"Mohamed Salah",pos:"RM",rating:92,img:"https://i.postimg.cc/0Nwn6dS7/ezgif-2be20ffe511ee918.png",league:"Prem"},
+  {name:"Michael Olise",pos:"RM",rating:90,img:"https://i.postimg.cc/0Q1f7MGm/ezgif-2b0533f81607e922.png",league:"Bundesliga"},
+  {name:"Pedro Neto",pos:"RM",rating:88,img:"https://i.postimg.cc/k4PcW6NQ/ezgif-21e42fca636ae898.png",league:"Prem"},
+  {name:"Jarrod Bowen",pos:"RM",rating:86,img:"https://i.postimg.cc/L6wX8z3F/ezgif-8031c0f292b05479.png",league:"Prem"},
+  {name:"David Beckham",pos:"RM",rating:88,img:"https://i.postimg.cc/W4H2jS3G/ezgif-20199a0603b3cd7d.png",league:"Icon"},
+  {name:"Brahim Diaz",pos:"RM",rating:90,img:"https://i.postimg.cc/k4XrPgDB/ezgif-83f6e7d621028651.png",league:"La Liga"},
+  {name:"Vinicius Jr",pos:"LW",rating:92,img:"https://i.postimg.cc/NMN3svrK/ezgif-8c32dd54c372b088.png",league:"La Liga"},
+  {name:"Nico Williams",pos:"LW",rating:92,img:"https://i.postimg.cc/d0LDs4zw/ezgif-2c67e44fd297bc3f.png",league:"La Liga"},
+  {name:"Rafael Leao",pos:"LW",rating:87,img:"https://i.postimg.cc/mgxSFpYM/ezgif-6d863844af2fc4ce.png",league:"Serie A"},
+  {name:"Khvicha Kvaratskhelia",pos:"LW",rating:88,img:"https://i.postimg.cc/Gm0jsgFy/ezgif-62a91f4c17394dee.png",league:"Ligue 1"},
+  {name:"Jeremy Doku",pos:"LW",rating:86,img:"https://i.postimg.cc/SxWfLLdW/ezgif-6eb49f994371ac86.png",league:"Prem"},
+  {name:"Anthony Gordon",pos:"LW",rating:88,img:"https://i.postimg.cc/VkjW99gB/ezgif-67b186926ca1b2e9.png",league:"Prem"},
+  {name:"Jack Grealish",pos:"LW",rating:87,img:"https://i.postimg.cc/Jzb533xN/ezgif-618bdf54829de577.png",league:"Prem"},
+  {name:"Raphinia",pos:"LW",rating:91,img:"https://i.postimg.cc/4xkz38tQ/ezgif-60a382965bf2ed94.png",league:"La Liga"},
+  {name:"Ronaldinho",pos:"LW",rating:94,img:"https://i.postimg.cc/T2snWwsM/ezgif-819bede5ff481633.png",league:"Icon"},
+  {name:"Karim Adeyemi",pos:"LW",rating:86,img:"https://i.postimg.cc/cLQB77h9/ezgif-68db98e5c3a5928f.png",league:"Bundesliga"},
+  {name:"Lamine Yamal",pos:"RW",rating:92,img:"https://i.postimg.cc/SKJjSDwy/ezgif-2ffd87ff944c70ab.png",league:"La Liga"},
+  {name:"Rodrygo",pos:"RW",rating:88,img:"https://i.postimg.cc/655d471d/ezgif-8bf01156bdcc6b49.png",league:"La Liga"},
+  {name:"Ousmane Dembele",pos:"RW",rating:90,img:"https://i.postimg.cc/655d471V/ezgif-8936a25abb253a3a.png",league:"Ligue 1"},
+  {name:"Phil Foden",pos:"RW",rating:86,img:"https://i.postimg.cc/PrnFfLL7/ezgif-804c977cdb9d92b4.png",league:"Prem"},
+  {name:"Garrincha",pos:"RW",rating:93,img:"https://i.postimg.cc/cCkpzsTN/ezgif-51621c4e896c1ae5.png",league:"Icon"},
+  {name:"Bukayo Saka",pos:"RW",rating:90,img:"https://i.postimg.cc/TYp1xkg3/ezgif-8116c16dea22a0bb.png",league:"Prem"},
+  {name:"Kylian Mbappe",pos:"ST",rating:92,img:"https://i.postimg.cc/JhF3FkNt/ezgif-541d4a3bf911d716.png",league:"La Liga"},
+  {name:"Erling Haaland",pos:"ST",rating:92,img:"https://i.postimg.cc/q7FcF3sb/ezgif-55dec9b8411a95ad.png",league:"Prem"},
+  {name:"Harry Kane",pos:"ST",rating:90,img:"https://i.postimg.cc/R0Y1YH7G/ezgif-5bc88caa12f0b9c0.png",league:"Bundesliga"},
+  {name:"Robert Lewandowski",pos:"ST",rating:88,img:"https://i.postimg.cc/zfQwQgCj/ezgif-55eb8674b3662704.png",league:"La Liga"},
+  {name:"Lautaro Martinez",pos:"ST",rating:89,img:"https://i.postimg.cc/fbP7P9cH/ezgif-584f3b74ceab10e8.png",league:"Serie A"},
+  {name:"Julian Alvarez",pos:"ST",rating:89,img:"https://i.postimg.cc/T1MVdvHK/ezgif-5c2a57102ae0f6d8.png",league:"La Liga"},
+  {name:"Alexander Isak",pos:"ST",rating:89,img:"https://i.postimg.cc/gjFVzbBw/ezgif-59efdf43c82c8495.png",league:"Prem"},
+  {name:"Ollie Watkins",pos:"ST",rating:86,img:"https://i.postimg.cc/prbfWM1h/ezgif-59cced4ad32f3fc8.png",league:"Prem"},
+  {name:"Lionel Messi",pos:"ST",rating:90,img:"https://i.postimg.cc/jddznWkH/ezgif-8f168334773a31d7.png",league:"MLS"},
+  {name:"Cristiano Ronaldo",pos:"ST",rating:90,img:"https://i.postimg.cc/mkYQhp05/ezgif-5e55a4abc759b5db.png",league:"Prem"},
+  {name:"Ronaldo",pos:"ST",rating:94,img:"https://i.postimg.cc/Qt0kzJS9/ezgif-89b782e7d4fd2c45.png",league:"Icon"},
+  {name:"Zlatan Ibrahimovic",pos:"ST",rating:95,img:"https://i.postimg.cc/MGFWxtT0/ezgif-20f0c016d41116df.png",league:"Icon"},
+  {name:"Viktor Gyokeres",pos:"ST",rating:87,img:"https://i.postimg.cc/rs1SzZvb/ezgif-5ba8e3b9b353ec19.png",league:"Prem"},
+];
+
+const FORMATIONS={
+  "4-3-3":{positions:["GK","LW","ST","RW","CM","CM","CM","LB","CB","CB","RB"],coords:[[50,88],[14,12],[50,12],[86,12],[22,40],[50,40],[78,40],[10,64],[35,64],[65,64],[90,64]]},
+  "4-4-2":{positions:["GK","ST","ST","LM","CM","CM","RM","LB","CB","CB","RB"],coords:[[50,88],[35,12],[65,12],[10,40],[36,40],[64,40],[90,40],[10,64],[35,64],[65,64],[90,64]]},
+  "4-2-3-1":{positions:["GK","ST","LM","CAM","RM","CDM","CDM","LB","CB","CB","RB"],coords:[[50,88],[50,10],[14,30],[50,30],[86,30],[32,54],[68,54],[10,68],[35,68],[65,68],[90,68]]}
+};
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let peer = null;   // This player's Peer object
+let conn = null;   // DataConnection to the other player
+let selectedMode = '';
+let lobbyFormation = '';
+let joinFormation = '';
+
+let G = {
+  username:'', mode:'', roomCode:'',
+  myFormation:'', oppFormation:'', oppUsername:'',
+  positions:[], pickedPlayers:[], usedNames:new Set(),
+  lockedChoices:{}, totalRating:0, selectedLeagues:[],
+  activeSlot:null, activeFilter:null,
+  draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null
+};
+
+// ─── send helper ───
+function send(msg){ if(conn && conn.open) conn.send(msg); }
+
+// ─── screen helper ───
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── destroy peer cleanly ───
+function destroyPeer(){
+  if(conn){ try{conn.close();}catch(e){} conn=null; }
+  if(peer){ try{peer.destroy();}catch(e){} peer=null; }
+}
+
+// ═══════════════════════════════════════════════
+//  QR CODE
+// ═══════════════════════════════════════════════
+function showQR(){
+  const url = window.location.href;
+  document.getElementById('qrUrl').textContent = url;
+  document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=e8b84b&bgcolor=171a24&data=' + encodeURIComponent(url);
+  showScreen('qrScreen');
+}
+
+// ═══════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════
+function selectMode(m){
+  selectedMode = m;
+  document.getElementById('ccHost').classList.toggle('selected', m==='host');
+  document.getElementById('ccJoin').classList.toggle('selected', m==='join');
+  checkHomeReady();
+}
+document.getElementById('usernameInput').addEventListener('input', checkHomeReady);
+function checkHomeReady(){
+  const ok = document.getElementById('usernameInput').value.trim().length >= 2 && selectedMode !== '';
+  document.getElementById('homeNextBtn').disabled = !ok;
+}
+function homeNext(){
+  const name = document.getElementById('usernameInput').value.trim();
+  if(!name || !selectedMode) return;
+  G.username = name;
+  G.mode = selectedMode;
+  document.getElementById('homeError').textContent = '';
+  if(selectedMode === 'host') goToLobby();
+  else showScreen('joinScreen');
+}
+
+// ═══════════════════════════════════════════════
+//  FORMATION PICKERS
+// ═══════════════════════════════════════════════
+function pickFormation(btn, ctx){
+  const rowId = ctx==='lobby' ? 'lobbyFormationRow' : 'joinFormationRow';
+  document.getElementById(rowId).querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  if(ctx === 'lobby'){
+    lobbyFormation = btn.dataset.f;
+    // Tell guest our formation has been selected/changed
+    send({type:'HOST_FORMATION_UPDATE', formation:lobbyFormation});
+    checkLobbyReady();
+  } else {
+    joinFormation = btn.dataset.f;
+    checkJoinReady();
+  }
+}
+function checkJoinReady(){
+  const code = document.getElementById('joinCodeInput').value.trim();
+  document.getElementById('joinBtn').disabled = !(joinFormation && code.length === 4);
+}
+document.getElementById('joinCodeInput').addEventListener('input', checkJoinReady);
+
+// ═══════════════════════════════════════════════
+//  HOST LOBBY  — uses PeerJS with ID apexxi-XXXX
+// ═══════════════════════════════════════════════
+function goToLobby(){
+  destroyPeer();
+  lobbyFormation = '';
+  document.getElementById('lobbyFormationRow').querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
+
+  // Reset slots
+  document.getElementById('slotName0').textContent = G.username;
+  document.getElementById('slot0').classList.add('filled');
+  document.getElementById('slotName1').textContent = 'Waiting...';
+  document.getElementById('slot1').classList.remove('filled');
+  document.getElementById('lobbyStartBtn').disabled = true;
+  setLobbyStatus('waiting', 'Waiting for opponent to join...');
+
+  G.roomCode = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('lobbyCode').textContent = G.roomCode;
+  showScreen('lobbyScreen');
+
+  const peerId = 'apexxi-' + G.roomCode;
+  peer = new Peer(peerId);
+
+  peer.on('open', ()=>{
+    // Ready to receive connections — code is already displayed
+  });
+
+  peer.on('connection', (c)=>{
+    if(conn){ c.close(); return; } // Room full — reject
+    conn = c;
+    conn.on('data', handleHostData);
+    conn.on('close', ()=>handleDisconnect());
+    conn.on('error', ()=>handleDisconnect());
+    // Register data handler FIRST, then signal ready.
+    // This guarantees the handler is active before the guest sends JOIN.
+    conn.on('open', ()=>{
+      send({type:'HOST_READY'});
+    });
+    // Fallback: if the connection was already open when we got here
+    if(conn.open) send({type:'HOST_READY'});
+  });
+
+  peer.on('error', (err)=>{
+    if(err.type === 'unavailable-id'){
+      // Code collision — try a new one
+      peer.destroy(); peer = null;
+      goToLobby();
+    } else {
+      setLobbyStatus('waiting', 'Connection error — try again.');
+    }
+  });
+}
+
+function handleHostData(data){
+  if(data.type === 'JOIN'){
+    // Idempotent — safe to receive more than once
+    G.oppUsername = data.name;
+    G.oppFormation = data.formation;
+    document.getElementById('slotName1').textContent = data.name;
+    document.getElementById('slot1').classList.add('filled');
+    // Confirm back to guest with current host state
+    send({type:'HOST_INFO', name:G.username, hostFormation:lobbyFormation});
+    checkLobbyReady();
+  }
+  if(data.type === 'FORMATION_UPDATE'){
+    G.oppFormation = data.formation;
+    checkLobbyReady();
+  }
+  if(data.type === 'ROOM_CLOSED'){
+    destroyPeer();
+    showScreen('homeScreen');
+  }
+  if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
+}
+
+function checkLobbyReady(){
+  const guestIn    = G.oppUsername !== '';
+  const hostPicked = lobbyFormation !== '';
+  const guestPicked= G.oppFormation !== '';
+  const canStart   = guestIn && hostPicked && guestPicked;
+  document.getElementById('lobbyStartBtn').disabled = !canStart;
+
+  if(canStart){
+    setLobbyStatus('ready', 'Both players ready — start the draft!');
+  } else if(guestIn && hostPicked && !guestPicked){
+    setLobbyStatus('waiting', G.oppUsername + ' joined! Waiting for their formation...');
+  } else if(guestIn && !hostPicked){
+    setLobbyStatus('waiting', G.oppUsername + ' joined! Pick your formation to continue.');
+  } else {
+    setLobbyStatus('waiting', 'Waiting for opponent to join...');
+  }
+}
+
+function setLobbyStatus(state, text){
+  const el = document.getElementById('lobbyStatus');
+  el.classList.toggle('ready', state === 'ready');
+  el.innerHTML = state === 'waiting'
+    ? '<span class="pulse-dot"></span>' + text
+    : text;
+}
+
+function startDraft(){
+  if(!lobbyFormation || !G.oppUsername || !G.oppFormation) return;
+  send({type:'START', hostFormation:lobbyFormation});
+  G.myFormation = lobbyFormation;
+  initDraft();
+}
+
+// ═══════════════════════════════════════════════
+//  JOIN ROOM
+// ═══════════════════════════════════════════════
+function joinRoom(){
+  const code = document.getElementById('joinCodeInput').value.trim();
+  const errEl = document.getElementById('joinError');
+  errEl.textContent = '';
+  if(code.length !== 4){ errEl.textContent = 'Enter a 4-digit code.'; return; }
+  if(!joinFormation){ errEl.textContent = 'Pick a formation first.'; return; }
+
+  document.getElementById('joinBtn').disabled = true;
+  document.getElementById('joinBtn').textContent = 'CONNECTING...';
+
+  destroyPeer();
+  G.myFormation = joinFormation;
+  G.mode = 'guest';
+  G.roomCode = code; // store for display in guest lobby
+
+  peer = new Peer(); // random ID for guest
+  peer.on('open', ()=>{
+    conn = peer.connect('apexxi-' + code, {reliable:true});
+
+    // Timeout if host not found
+    const timeout = setTimeout(()=>{
+      if(!conn || !conn.open){
+        errEl.textContent = 'Room not found. Check the code and try again.';
+        resetJoinBtn();
+        destroyPeer();
+      }
+    }, 8000);
+
+    conn.on('open', ()=>{
+      clearTimeout(timeout);
+      // Send JOIN immediately as first attempt (may race on host side, but safe)
+      conn.send({type:'JOIN', name:G.username, formation:joinFormation});
+    });
+    conn.on('data', (data)=>{
+      if(data.type === 'HOST_READY'){
+        // Host explicitly signals its data listener is active — send/resend JOIN now.
+        // This is the guaranteed delivery path that eliminates the race condition.
+        conn.send({type:'JOIN', name:G.username, formation:joinFormation});
+      }
+      if(data.type === 'HOST_INFO'){
+        clearTimeout(timeout);
+        G.oppUsername = data.name;
+        G.oppFormation = data.hostFormation;
+        resetJoinBtn();
+        showGuestLobby();
+      }
+      if(data.type === 'HOST_FORMATION_UPDATE'){
+        G.oppFormation = data.formation;
+      }
+      if(data.type === 'START'){
+        G.oppFormation = data.hostFormation;
+        initDraft();
+      }
+      if(data.type === 'ROOM_CLOSED'){
+        destroyPeer();
+        showScreen('homeScreen');
+      }
+      if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
+    });
+    conn.on('close', ()=>handleDisconnect());
+    conn.on('error', ()=>{
+      errEl.textContent = 'Could not connect. Room may be full or closed.';
+      resetJoinBtn();
+      destroyPeer();
+    });
+  });
+  peer.on('error', (err)=>{
+    errEl.textContent = 'Room not found. Check the code.';
+    resetJoinBtn();
+    destroyPeer();
+  });
+}
+
+function resetJoinBtn(){
+  const btn = document.getElementById('joinBtn');
+  btn.disabled = false;
+  btn.textContent = 'JOIN ROOM';
+  checkJoinReady();
+}
+
+// Guest waiting lobby (reuse lobbyScreen but hide host-only elements)
+function showGuestLobby(){
+  document.getElementById('lobbyCode').textContent = G.roomCode || '–';
+  document.getElementById('slotName0').textContent = G.oppUsername;
+  document.getElementById('slot0').classList.add('filled');
+  document.getElementById('slotName1').textContent = G.username;
+  document.getElementById('slot1').classList.add('filled');
+  document.getElementById('lobbyStartBtn').style.display = 'none';
+  document.getElementById('lobbyFormationRow').style.display = 'none';
+  document.querySelectorAll('#lobbyScreen > [style*="Choose"]').forEach(el=>el.style.display='none');
+  setLobbyStatus('waiting', 'Waiting for host to start the draft...');
+  showScreen('lobbyScreen');
+}
+
+// ═══════════════════════════════════════════════
+//  LEAVE / HOME
+// ═══════════════════════════════════════════════
+function leaveJoinScreen(){
+  // Clear all join screen state
+  document.getElementById('joinCodeInput').value = '';
+  document.getElementById('joinError').textContent = '';
+  document.getElementById('joinFormationRow').querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
+  joinFormation = '';
+  document.getElementById('joinBtn').disabled = true;
+  destroyPeer();
+  showScreen('homeScreen');
+}
+
+function goHome(){
+  send({type:'ROOM_CLOSED'});
+  destroyPeer();
+  // Reset all state
+  selectedMode = ''; lobbyFormation = ''; joinFormation = '';
+  G = {username:G.username, mode:'', roomCode:'', myFormation:'', oppFormation:'', oppUsername:'',
+    positions:[], pickedPlayers:[], usedNames:new Set(), lockedChoices:{},
+    totalRating:0, selectedLeagues:[], activeSlot:null, activeFilter:null,
+    draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null};
+  // Reset lobby UI
+  document.getElementById('lobbyStartBtn').style.display = '';
+  document.getElementById('lobbyFormationRow').style.display = 'flex';
+  document.querySelectorAll('#lobbyScreen > [style]').forEach(el=>{
+    if(el.textContent.trim().includes('Choose Your Formation')) el.style.display = '';
+  });
+  showScreen('homeScreen');
+}
+
+function handleDisconnect(){
+  // Only show alert if we're mid-game or in lobby
+  const active = document.querySelector('.screen.active');
+  if(active && (active.id === 'draftScreen' || active.id === 'lobbyScreen')){
+    alert('Opponent disconnected.');
+    goHome();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  DRAFT INIT
+// ═══════════════════════════════════════════════
+function initDraft(){
+  const f = FORMATIONS[G.myFormation];
+  G.positions = [...f.positions];
+  G.pickedPlayers = new Array(11).fill(null);
+  G.usedNames = new Set();
+  G.lockedChoices = {};
+  G.totalRating = 0; G.selectedLeagues = [];
+  G.activeSlot = null; G.activeFilter = null;
+  G.draftDone = false; G.oppDraftDone = false; G.oppCount = 0; G.oppPicks = null;
+
+  // Restore panel to default
+  document.getElementById('selPanel').innerHTML = `
+    <div class="sp-header">
+      <div class="sp-title" id="spTitle">Select a Position</div>
+      <div class="sp-pos" id="spPos">–</div>
+      <div class="sp-hint" id="spHint">Tap any glowing slot on the pitch</div>
+    </div>
+    <div class="league-filters" id="leagueFilters" style="display:none"></div>
+    <div id="spContent" class="sp-cards">
+      <div class="sp-idle"><div class="idle-icon">⚽</div><p>Click any glowing slot<br>on the pitch to pick a player</p></div>
+    </div>`;
+
+  document.getElementById('draftFilled').textContent = '0';
+  document.getElementById('oppProgressLabel').textContent = G.oppUsername + ': 0/11';
+
+  showScreen('draftScreen');
+  requestAnimationFrame(buildPitch);
+}
+
+// ═══════════════════════════════════════════════
+//  PITCH
+// ═══════════════════════════════════════════════
+function buildPitch(){
+  const container = document.getElementById('pitchSlots');
+  container.innerHTML = '';
+  FORMATIONS[G.myFormation].coords.forEach((coord, i)=>{
+    const div = document.createElement('div');
+    div.className = 'pslot available';
+    div.id = 'pslot_' + i;
+    div.style.left = coord[0] + '%';
+    div.style.top  = coord[1] + '%';
+    div.innerHTML = `<div class="pslot-img" id="pslotImg_${i}"><span class="pos-text">${G.positions[i]}</span></div><div class="pslot-label" id="pslotLabel_${i}">${G.positions[i]}</div>`;
+    div.onclick = ()=>openSlot(i);
+    container.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  SLOT SELECTION
+// ═══════════════════════════════════════════════
+function openSlot(idx){
+  if(G.draftDone) return;
+  if(G.pickedPlayers[idx] !== null) return;
+  G.activeSlot = idx;
+  G.activeFilter = null;
+  // Highlight active, others available/filled
+  for(let i=0;i<11;i++){
+    const s = document.getElementById('pslot_'+i);
+    if(!s) continue;
+    if(G.pickedPlayers[i]!==null) s.className='pslot filled';
+    else if(i===idx)              s.className='pslot active';
+    else                          s.className='pslot available';
+  }
+  const pos = G.positions[idx];
+  document.getElementById('spTitle').textContent = 'Pick your ' + pos;
+  document.getElementById('spPos').textContent   = pos;
+  document.getElementById('spHint').textContent  = 'Choose one player for this slot';
+
+  if(G.lockedChoices[idx]){
+    renderCards(G.lockedChoices[idx]);
+  } else {
+    const pool = shuffle(PLAYERS.filter(p=>p.pos===pos && !G.usedNames.has(p.name))).slice(0,5);
+    G.lockedChoices[idx] = pool;
+    renderCards(pool);
+  }
+}
+
+function renderCards(players, filter=null){
+  const filtered = filter ? players.filter(p=>p.league===filter) : players;
+  const leagues  = [...new Set(players.map(p=>p.league))];
+  const lf = document.getElementById('leagueFilters');
+  if(leagues.length > 1){
+    lf.style.display = 'flex';
+    lf.innerHTML = `<span class="lf-chip ${!filter?'on':''}" onclick="applyFilter(null)">All</span>`
+      + leagues.map(l=>`<span class="lf-chip ${filter===l?'on':''}" onclick="applyFilter('${l}')">${l}</span>`).join('');
+  } else { lf.style.display = 'none'; }
+
+  const content = document.getElementById('spContent');
+  content.className = 'sp-cards';
+  if(!filtered.length){ content.innerHTML='<div class="sp-idle"><p>No players match</p></div>'; return; }
+  content.innerHTML = filtered.map(p=>`
+    <div class="pick-card" onclick="pickPlayer('${p.name.replace(/'/g,"\\'")}')">
+      <img class="pick-card-img" src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='0.3'">
+      <div class="pick-card-info"><div class="pcn">${p.name}</div><div class="pcm"><span class="pc-league">${p.league}</span></div></div>
+      <div class="pick-card-rating">${p.rating}</div>
+    </div>`).join('');
+}
+
+function applyFilter(league){
+  G.activeFilter = league;
+  if(G.activeSlot === null) return;
+  renderCards(G.lockedChoices[G.activeSlot], league);
+}
+
+// ═══════════════════════════════════════════════
+//  PICK PLAYER
+// ═══════════════════════════════════════════════
+function pickPlayer(name){
+  if(G.activeSlot === null) return;
+  const player = PLAYERS.find(p=>p.name===name);
+  if(!player) return;
+  const idx = G.activeSlot;
+  G.pickedPlayers[idx] = player;
+  G.usedNames.add(name);
+  G.totalRating += player.rating;
+  G.selectedLeagues.push(player.league);
+  G.activeSlot = null; G.activeFilter = null;
+
+  // Update pitch slot visually
+  document.getElementById('pslot_'+idx).className = 'pslot filled';
+  document.getElementById('pslotImg_'+idx).innerHTML = `<img src="${player.img}" alt="${player.name}" onerror="this.style.opacity='0.3'">`;
+  document.getElementById('pslotLabel_'+idx).textContent = player.name.split(' ').slice(-1)[0];
+
+  document.getElementById('leagueFilters').style.display = 'none';
+  document.getElementById('draftFilled').textContent = G.pickedPlayers.filter(Boolean).length;
+
+  const remaining = G.pickedPlayers.filter(p=>p===null).length;
+  send({type:'PICK_UPDATE', count: G.pickedPlayers.filter(Boolean).length, done:false});
+
+  if(remaining === 0){
+    G.draftDone = true;
+    send({type:'PICK_UPDATE', count:11, done:true, picks: G.pickedPlayers.map(p=>p?{name:p.name,pos:p.pos,rating:p.rating,img:p.img,league:p.league}:null)});
+    document.getElementById('selPanel').innerHTML = `
+      <div class="waiting-overlay">
+        <div class="spinner"></div>
+        <h3>Squad Complete!</h3>
+        <p>Waiting for ${G.oppUsername} to finish...</p>
+      </div>`;
+    checkBothDone();
+  } else {
+    document.getElementById('spContent').innerHTML='<div class="sp-idle"><div class="idle-icon">⚽</div><p>Pick another slot on the pitch</p></div>';
+    document.getElementById('spTitle').textContent='Select a Position';
+    document.getElementById('spPos').textContent='–';
+    document.getElementById('spHint').textContent='Tap any glowing slot';
+    // Re-mark remaining slots available
+    for(let i=0;i<11;i++){
+      if(G.pickedPlayers[i]===null) document.getElementById('pslot_'+i).className='pslot available';
+    }
+  }
+}
+
+function handleOppPickUpdate(data){
+  G.oppCount = data.count;
+  document.getElementById('oppProgressLabel').textContent = G.oppUsername + ': ' + data.count + '/11';
+  if(data.done){
+    G.oppDraftDone = true;
+    if(data.picks) G.oppPicks = data.picks;
+    checkBothDone();
+  }
+}
+
+function checkBothDone(){
+  if(G.draftDone && G.oppDraftDone) setTimeout(showResult, 800);
+}
+
+// ═══════════════════════════════════════════════
+//  SCORING
+// ═══════════════════════════════════════════════
+function calcScore(picks, leagues){
+  const filled = picks.filter(Boolean);
+  if(!filled.length) return {avg:80,chem:0,total:80};
+  const avg = filled.reduce((s,p)=>s+p.rating,0)/filled.length;
+  const counts={};
+  (leagues||filled.map(p=>p.league)).forEach(l=>counts[l]=(counts[l]||0)+1);
+  let chem=0;
+  Object.values(counts).forEach(c=>{if(c>=5)chem+=5;else if(c>=3)chem+=2;});
+  return {avg:Math.round(avg), chem, total:Math.round(avg+chem)};
+}
+
+function scoreToGoals(a,b){
+  const diff=a-b;
+  if(diff===0){const g=[0,0,1,1,1,2,2,3][Math.floor(Math.random()*8)];return{a:g,b:g};}
+  const abs=Math.abs(diff);let w,l;
+  if(abs<=2){w=ri(1,2);l=w-1;}else if(abs<=5){w=ri(2,3);l=ri(0,1);}
+  else if(abs<=10){w=ri(3,4);l=ri(0,1);}else{w=ri(4,5);l=0;}
+  w=Math.min(w,5);l=Math.min(l,w-1);
+  return diff>0?{a:w,b:l}:{a:l,b:w};
+}
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+// ═══════════════════════════════════════════════
+//  RESULT
+// ═══════════════════════════════════════════════
+function showResult(){
+  const my  = calcScore(G.pickedPlayers, G.selectedLeagues);
+  const opp = G.oppPicks ? calcScore(G.oppPicks) : {avg:85,chem:0,total:85};
+  const goals = scoreToGoals(my.total, opp.total);
+
+  const trophy = document.getElementById('resultTrophy');
+  const sub    = document.getElementById('resultSub');
+  if(goals.a > goals.b){
+    trophy.textContent = G.username + ' Wins!';
+    trophy.className = 'result-trophy win';
+    sub.textContent = 'Incredible squad building!';
+  } else if(goals.a < goals.b){
+    trophy.textContent = G.oppUsername + ' Wins!';
+    trophy.className = 'result-trophy';
+    trophy.style.color = 'var(--muted2)';
+    sub.textContent = 'Better luck next time.';
+  } else {
+    trophy.textContent = 'Draw!';
+    trophy.className = 'result-trophy draw';
+    sub.textContent = 'Evenly matched squads.';
+  }
+
+  document.getElementById('r_myName').textContent  = G.username;
+  document.getElementById('r_oppName').textContent = G.oppUsername;
+  document.getElementById('r_myGoals').textContent  = goals.a;
+  document.getElementById('r_oppGoals').textContent = goals.b;
+  document.getElementById('r_myGoals').className  = 'rsc-goals'+(goals.a>goals.b?' hi':'');
+  document.getElementById('r_oppGoals').className = 'rsc-goals'+(goals.b>goals.a?' hi':'');
+  document.getElementById('r_ovr').textContent    = my.avg;
+  document.getElementById('r_chem').textContent   = '+'+my.chem;
+  document.getElementById('r_score').textContent  = my.total;
+  document.getElementById('r_opp_score').textContent = opp.total;
+
+  const myHTML  = G.pickedPlayers.map((p,i)=>p?`<div class="rt-player"><img src="${p.img}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${G.positions[i]}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('');
+  const oppPos  = FORMATIONS[G.oppFormation||'4-3-3'].positions;
+  const oppHTML = G.oppPicks ? G.oppPicks.map((p,i)=>p?`<div class="rt-player"><img src="${p.img}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${oppPos[i]||p.pos}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('') : '<div style="color:var(--muted);font-size:0.78rem;padding:0.5rem">Squad data unavailable</div>';
+  document.getElementById('resultTeams').innerHTML=`<div class="result-team"><div class="rt-header">${G.username} (${G.myFormation})</div>${myHTML}</div><div class="result-team"><div class="rt-header">${G.oppUsername} (${G.oppFormation||'–'})</div>${oppHTML}</div>`;
+
+  showScreen('resultScreen');
+}
+
+// ═══════════════════════════════════════════════
+//  PLAY AGAIN / HOME
+// ═══════════════════════════════════════════════
+function playAgain(){ goHome(); }
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+document.getElementById('usernameInput').addEventListener('keydown',e=>{if(e.key==='Enter')homeNext();});
+document.getElementById('joinCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
+</script>
+</body>
+</html>
