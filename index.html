@@ -27,13 +27,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 #draftScreen.active{justify-content:flex-start;padding:0;display:flex;flex-direction:column;height:100vh}
 
 /* HOME */
-#homeScreen{
-  background-image:
-    radial-gradient(ellipse 70% 70% at 50% 50%, rgba(8,9,12,0.35) 0%, rgba(8,9,12,0.72) 55%, rgba(8,9,12,0.93) 100%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(232,184,75,0.22) 0%, transparent 65%),
-    url("https://t4.ftcdn.net/jpg/04/17/36/11/360_F_417361125_RnrhT3Np0zB0UpeD7QlwuOoyghEGGjBX.jpg");
-  background-size:cover;background-position:center;background-repeat:no-repeat;
-}
+#homeScreen{position:relative}
 .logo-mark{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#c8952a);display:flex;align-items:center;justify-content:center;margin-bottom:1.2rem;box-shadow:0 8px 40px rgba(232,184,75,0.45),0 0 0 3px rgba(232,184,75,0.3);position:relative;overflow:hidden}
 .logo-mark::after{content:'';position:absolute;inset:-1px;border-radius:50%;background:linear-gradient(135deg,rgba(255,255,255,0.25),transparent);pointer-events:none}
 .logo-mark img{width:78%;height:78%;object-fit:contain;position:relative;z-index:1}
@@ -72,15 +66,41 @@ input[type=text]::placeholder{color:var(--muted)}
 .choice-card .cc-label{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.08em;font-size:1rem}
 .choice-card .cc-sub{font-size:0.72rem;color:var(--muted);margin-top:2px}
 
+/* FIELD BACKGROUND — all screens */
+.screen::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,#1a5c2e 0%,#1f6e35 8%,#1a5c2e 16%,#1f6e35 24%,#1a5c2e 32%,#1f6e35 40%,#1a5c2e 48%,#1f6e35 56%,#1a5c2e 64%,#1f6e35 72%,#1a5c2e 80%,#1f6e35 88%,#1a5c2e 96%,#1f6e35 100%);
+  opacity:1;
+}
+/* Dark center vignette (readable) → transparent at edges (pitch visible) */
+.screen::after{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:radial-gradient(ellipse 70% 65% at 50% 48%, rgba(8,9,12,0.92) 0%, rgba(8,9,12,0.78) 35%, rgba(8,9,12,0.45) 65%, rgba(8,9,12,0.1) 100%);
+}
+/* HOME screen keeps its stadium image on top of pitch */
+#homeScreen::before{
+  background-image:
+    url("https://t4.ftcdn.net/jpg/04/17/36/11/360_F_417361125_RnrhT3Np0zB0UpeD7QlwuOoyghEGGjBX.jpg");
+  background-size:cover;background-position:center;opacity:0.55;
+}
+#homeScreen::after{
+  background:radial-gradient(ellipse 70% 65% at 50% 48%, rgba(8,9,12,0.88) 0%, rgba(8,9,12,0.72) 40%, rgba(232,184,75,0.08) 75%, rgba(8,9,12,0.2) 100%);
+}
+/* Draft screen manages its own pitch, suppress overlay */
+#draftScreen::before,#draftScreen::after{display:none}
+
 /* FORMATION PICKER */
-.formation-row{display:flex;gap:10px;margin-bottom:1.5rem}
-.form-btn{background:var(--s2);border:1.5px solid var(--border2);border-radius:10px;padding:0.8rem 1.2rem;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.05em;min-width:80px}
-.form-btn:hover{border-color:var(--gold);background:var(--s3)}
-.form-btn.selected{border-color:var(--gold);background:var(--gold-dim);color:var(--gold)}
-.form-sub{font-family:'Barlow',sans-serif;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+.formation-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:480px;margin-bottom:1.2rem}
+@media(min-width:500px){.formation-row{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:680px){.formation-row{grid-template-columns:repeat(5,1fr)}}
+.form-btn{background:rgba(15,17,24,0.7);border:1.5px solid var(--border2);border-radius:10px;padding:0.65rem 0.5rem;cursor:pointer;transition:all 0.2s;text-align:center;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:0.04em;backdrop-filter:blur(4px)}
+.form-btn:hover{border-color:var(--gold);background:rgba(232,184,75,0.1)}
+.form-btn.selected{border-color:var(--gold);background:rgba(232,184,75,0.18);color:var(--gold)}
+.form-sub{font-family:'Barlow',sans-serif;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:3px}
 
 /* LOBBY */
-#lobbyScreen{background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(232,184,75,0.1) 0%,transparent 60%),var(--bg)}
+#lobbyScreen{position:relative}
 .room-code-display{background:var(--s2);border:1.5px solid var(--border2);border-radius:14px;padding:1.2rem 2rem;margin:1rem 0;text-align:center}
 .room-code-display .code{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:0.2em;color:var(--gold);line-height:1}
 .room-code-display .code-label{font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem}
@@ -183,7 +203,7 @@ input[type=text]::placeholder{color:var(--muted)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* RESULT */
-#resultScreen{background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(232,184,75,0.15) 0%,transparent 55%),var(--bg)}
+#resultScreen{position:relative}
 .result-trophy{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,5.5rem);letter-spacing:0.04em;line-height:1;text-align:center;margin-bottom:0.3rem}
 .result-trophy.win{background:linear-gradient(135deg,#fff 0%,var(--gold) 50%,var(--gold2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .result-trophy.draw{color:var(--muted2)}
@@ -279,6 +299,12 @@ input[type=text]::placeholder{color:var(--muted)}
     <div class="form-btn" data-f="4-3-3" onclick="pickFormation(this,'lobby')">4-3-3<div class="form-sub">Attack</div></div>
     <div class="form-btn" data-f="4-4-2" onclick="pickFormation(this,'lobby')">4-4-2<div class="form-sub">Classic</div></div>
     <div class="form-btn" data-f="4-2-3-1" onclick="pickFormation(this,'lobby')">4-2-3-1<div class="form-sub">Control</div></div>
+    <div class="form-btn" data-f="4-1-2-1-2" onclick="pickFormation(this,'lobby')">4-1-2-1-2<div class="form-sub">Diamond</div></div>
+    <div class="form-btn" data-f="4-4-1-1" onclick="pickFormation(this,'lobby')">4-4-1-1<div class="form-sub">Compact</div></div>
+    <div class="form-btn" data-f="3-4-3" onclick="pickFormation(this,'lobby')">3-4-3<div class="form-sub">Blitz</div></div>
+    <div class="form-btn" data-f="3-5-2" onclick="pickFormation(this,'lobby')">3-5-2<div class="form-sub">Width</div></div>
+    <div class="form-btn" data-f="5-4-1" onclick="pickFormation(this,'lobby')">5-4-1<div class="form-sub">Fortress</div></div>
+    <div class="form-btn" data-f="5-2-1-2" onclick="pickFormation(this,'lobby')">5-2-1-2<div class="form-sub">Counter</div></div>
   </div>
   <div class="lobby-status" id="lobbyStatus"><span class="pulse-dot"></span>Waiting for opponent to join...</div>
   <button class="btn btn-gold" id="lobbyStartBtn" onclick="startDraft()" disabled>Start Draft</button>
@@ -298,6 +324,12 @@ input[type=text]::placeholder{color:var(--muted)}
     <div class="form-btn" data-f="4-3-3" onclick="pickFormation(this,'join')">4-3-3<div class="form-sub">Attack</div></div>
     <div class="form-btn" data-f="4-4-2" onclick="pickFormation(this,'join')">4-4-2<div class="form-sub">Classic</div></div>
     <div class="form-btn" data-f="4-2-3-1" onclick="pickFormation(this,'join')">4-2-3-1<div class="form-sub">Control</div></div>
+    <div class="form-btn" data-f="4-1-2-1-2" onclick="pickFormation(this,'join')">4-1-2-1-2<div class="form-sub">Diamond</div></div>
+    <div class="form-btn" data-f="4-4-1-1" onclick="pickFormation(this,'join')">4-4-1-1<div class="form-sub">Compact</div></div>
+    <div class="form-btn" data-f="3-4-3" onclick="pickFormation(this,'join')">3-4-3<div class="form-sub">Blitz</div></div>
+    <div class="form-btn" data-f="3-5-2" onclick="pickFormation(this,'join')">3-5-2<div class="form-sub">Width</div></div>
+    <div class="form-btn" data-f="5-4-1" onclick="pickFormation(this,'join')">5-4-1<div class="form-sub">Fortress</div></div>
+    <div class="form-btn" data-f="5-2-1-2" onclick="pickFormation(this,'join')">5-2-1-2<div class="form-sub">Counter</div></div>
   </div>
   <button class="btn btn-green" id="joinBtn" onclick="joinRoom()" style="margin-top:1rem" disabled>Join Room</button>
   <div class="error-msg" id="joinError"></div>
@@ -492,7 +524,13 @@ const PLAYERS=[
 const FORMATIONS={
   "4-3-3":{positions:["GK","LW","ST","RW","CM","CM","CM","LB","CB","CB","RB"],coords:[[50,88],[14,12],[50,12],[86,12],[22,40],[50,40],[78,40],[10,64],[35,64],[65,64],[90,64]]},
   "4-4-2":{positions:["GK","ST","ST","LM","CM","CM","RM","LB","CB","CB","RB"],coords:[[50,88],[35,12],[65,12],[10,40],[36,40],[64,40],[90,40],[10,64],[35,64],[65,64],[90,64]]},
-  "4-2-3-1":{positions:["GK","ST","LM","CAM","RM","CDM","CDM","LB","CB","CB","RB"],coords:[[50,88],[50,10],[14,30],[50,30],[86,30],[32,54],[68,54],[10,68],[35,68],[65,68],[90,68]]}
+  "4-2-3-1":{positions:["GK","ST","LM","CAM","RM","CDM","CDM","LB","CB","CB","RB"],coords:[[50,88],[50,10],[14,30],[50,30],[86,30],[32,54],[68,54],[10,68],[35,68],[65,68],[90,68]]},
+  "4-1-2-1-2":{positions:["GK","ST","ST","CAM","CM","CM","CDM","LB","CB","CB","RB"],coords:[[50,88],[30,10],[70,10],[50,26],[28,42],[72,42],[50,56],[10,70],[33,70],[67,70],[90,70]]},
+  "4-4-1-1":{positions:["GK","ST","CAM","LM","CM","CM","RM","LB","CB","CB","RB"],coords:[[50,88],[50,10],[50,26],[10,44],[34,44],[66,44],[90,44],[10,66],[33,66],[67,66],[90,66]]},
+  "3-4-3":{positions:["GK","LW","ST","RW","LM","CM","CM","RM","CB","CB","CB"],coords:[[50,88],[14,18],[50,12],[86,18],[10,46],[34,46],[66,46],[90,46],[25,68],[50,68],[75,68]]},
+  "3-5-2":{positions:["GK","ST","ST","LM","CDM","CM","CAM","RM","CB","CB","CB"],coords:[[50,88],[32,10],[68,10],[10,42],[30,42],[50,42],[70,42],[90,42],[25,68],[50,68],[75,68]]},
+  "5-4-1":{positions:["GK","ST","LM","CM","CM","RM","LB","CB","CB","CB","RB"],coords:[[50,88],[50,10],[10,42],[34,42],[66,42],[90,42],[8,66],[28,66],[50,66],[72,66],[92,66]]},
+  "5-2-1-2":{positions:["GK","ST","ST","CAM","CM","CM","LB","CB","CB","CB","RB"],coords:[[50,88],[30,10],[70,10],[50,28],[30,46],[70,46],[8,68],[28,68],[50,68],[72,68],[92,68]]}
 };
 
 // ═══════════════════════════════════════════════
@@ -620,18 +658,22 @@ function goToLobby(){
   });
 
   peer.on('connection', (c)=>{
-    if(conn){ c.close(); return; } // Room full — reject
+    // If we already have a live connection, reject duplicates
+    if(conn && conn.open){ c.close(); return; }
     conn = c;
-    conn.on('data', handleHostData);
-    conn.on('close', ()=>handleDisconnect());
-    conn.on('error', ()=>handleDisconnect());
-    // Register data handler FIRST, then signal ready.
-    // This guarantees the handler is active before the guest sends JOIN.
-    conn.on('open', ()=>{
+    let hostReadySent = false;
+    const sendHostReady = ()=>{
+      if(hostReadySent) return; // only ever send once
+      hostReadySent = true;
       send({type:'HOST_READY'});
-    });
-    // Fallback: if the connection was already open when we got here
-    if(conn.open) send({type:'HOST_READY'});
+    };
+    conn.on('data', handleHostData);
+    // Guard: only disconnect if THIS connection is still the active one
+    conn.on('close', ()=>{ if(conn === c) handleDisconnect(); });
+    conn.on('error', ()=>{ if(conn === c) handleDisconnect(); });
+    conn.on('open', sendHostReady);
+    // Fallback in case 'open' already fired before we registered
+    if(conn.open) sendHostReady();
   });
 
   peer.on('error', (err)=>{
@@ -652,6 +694,7 @@ function handleHostData(data){
     G.oppFormation = data.formation;
     document.getElementById('slotName1').textContent = data.name;
     document.getElementById('slot1').classList.add('filled');
+    G.connected = true;
     // Confirm back to guest with current host state
     send({type:'HOST_INFO', name:G.username, hostFormation:lobbyFormation});
     checkLobbyReady();
@@ -754,6 +797,7 @@ function joinRoom(){
         clearTimeout(timeout);
         G.oppUsername = data.name;
         G.oppFormation = data.hostFormation;
+        G.connected = true;
         resetJoinBtn();
         showGuestLobby();
       }
@@ -768,11 +812,14 @@ function joinRoom(){
         destroyPeer();
         showScreen('homeScreen');
       }
-  if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
-  if(data.type === 'PLAY_AGAIN'){
-    G.oppFormation = data.hostFormation;
-    initDraft();
-  }
+      if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
+      if(data.type === 'PLAY_AGAIN'){
+        G.oppFormation = data.hostFormation;
+        initDraft();
+      }
+    });
+    conn.on('close', ()=>handleDisconnect());
+    conn.on('error', ()=>{
       errEl.textContent = 'Could not connect. Room may be full or closed.';
       resetJoinBtn();
       destroyPeer();
@@ -828,7 +875,7 @@ function goHome(){
   G = {username:G.username, mode:'', roomCode:'', myFormation:'', oppFormation:'', oppUsername:'',
     positions:[], pickedPlayers:[], usedNames:new Set(), lockedChoices:{},
     totalRating:0, selectedLeagues:[], activeSlot:null, activeFilter:null,
-    draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null};
+    draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null, connected:false};
   // Reset lobby UI
   document.getElementById('lobbyStartBtn').style.display = '';
   document.getElementById('lobbyFormationRow').style.display = 'flex';
@@ -839,7 +886,8 @@ function goHome(){
 }
 
 function handleDisconnect(){
-  // Only show alert if we're mid-game or in lobby
+  if(!G.connected) return; // handshake not complete yet — ignore spurious close events
+  G.connected = false;
   const active = document.querySelector('.screen.active');
   if(active && (active.id === 'draftScreen' || active.id === 'lobbyScreen')){
     alert('Opponent disconnected.');
