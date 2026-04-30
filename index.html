@@ -131,7 +131,7 @@ input[type=text]::placeholder{color:var(--muted)}
 .qr-note{font-size:0.72rem;color:var(--muted);text-align:center;max-width:260px;line-height:1.6}
 
 /* DRAFT TOP BAR */
-.draft-top-bar{width:100%;background:var(--s1);border-bottom:1px solid var(--border);padding:0.7rem 1.2rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100;align-self:stretch}
+.draft-top-bar{width:100%;background:var(--s1);border-bottom:1px solid var(--border);padding:0.7rem 1.2rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100}
 .draft-top-bar .dtb-left{display:flex;align-items:center;gap:12px}
 .dtb-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.05em;color:var(--gold)}
 .progress-pill{background:var(--s3);border-radius:20px;padding:3px 12px;font-size:0.75rem;color:var(--muted2);font-family:'Barlow Condensed',sans-serif;letter-spacing:0.06em;border:1px solid var(--border)}
@@ -145,10 +145,9 @@ input[type=text]::placeholder{color:var(--muted)}
 #draftScreen.active{
   padding:0;justify-content:flex-start;
   height:100vh;height:100dvh;
-  overflow:hidden;
-  align-items:stretch
+  overflow:hidden
 }
-.draft-body{flex:1;display:flex;flex-direction:row;min-height:0;overflow:hidden;width:100%}
+.draft-body{flex:1;display:flex;flex-direction:row;min-height:0;overflow:hidden}
 .pitch-wrap{
   flex:1;position:relative;overflow:hidden;min-width:0;
   background:linear-gradient(180deg,#1a5c2e 0%,#1f6e35 8%,#1a5c2e 16%,#1f6e35 24%,#1a5c2e 32%,#1f6e35 40%,#1a5c2e 48%,#1f6e35 56%,#1a5c2e 64%,#1f6e35 72%,#1a5c2e 80%,#1f6e35 88%,#1a5c2e 96%,#1f6e35 100%)
@@ -548,20 +547,57 @@ const FORMATIONS={
 };
 
 // ═══════════════════════════════════════════════
-//  SECURITY & PROXY HELPERS
+//  IMAGE HELPERS
 // ═══════════════════════════════════════════════
-/**
- * CRITICAL: Fixes image URLs for GitHub Pages.
- * Ensures internal 'url=' parameter has 'https://' 
- * so wsrv.nl can fetch the image successfully.
- */
 const getImgUrl = (imgUrl) => {
   if (!imgUrl) return "";
-  if (imgUrl.includes('url=i.postimg')) {
-    return imgUrl.replace('url=', 'url=https://');
+  // If it's a local path, use as-is
+  if (imgUrl.startsWith('./') || imgUrl.startsWith('/')) return imgUrl;
+  // Fix wsrv.nl proxy URLs: ensure the inner url= has https://
+  if (imgUrl.includes('wsrv.nl')) {
+    if (imgUrl.includes('url=i.postimg')) {
+      return imgUrl.replace('url=i.postimg', 'url=https://i.postimg');
+    }
+    return imgUrl;
   }
   return imgUrl;
 };
+
+// Fallback: replace broken img with a styled placeholder
+function imgFallback(imgEl, playerName, pos) {
+  const initials = (playerName || pos || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hue = [...(playerName||'')].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
+  const parent = imgEl.parentElement;
+  if (!parent) return;
+  parent.style.background = `hsl(${hue},40%,22%)`;
+  parent.innerHTML = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:hsl(${hue},70%,65%);letter-spacing:0.05em;user-select:none">${initials}</span>`;
+}
+
+// Wire up onerror for pick-card images
+function makeCardImg(p) {
+  const url = getImgUrl(p.img);
+  return `<img class="pick-card-img" src="${url}" alt="${p.name}" loading="lazy"
+    onerror="imgFallback(this,'${p.name.replace(/'/g,'')}','${p.pos}')">`;
+}
+
+// ═══════════════════════════════════════════════
+//  ICE / TURN SERVERS (needed for school networks)
+// ═══════════════════════════════════════════════
+const ICE_SERVERS = [
+  // Google STUN
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun2.l.google.com:19302'},
+  // OpenRelay free TURN (helps bypass strict school firewalls/NAT)
+  {urls:'stun:openrelay.metered.ca:80'},
+  {urls:'turn:openrelay.metered.ca:80',   username:'openrelayproject', credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',  username:'openrelayproject', credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject'},
+  // Metered free TURN
+  {urls:'turn:a.relay.metered.ca:80',  username:'free', credential:'free'},
+  {urls:'turn:a.relay.metered.ca:443', username:'free', credential:'free'},
+  {urls:'turn:a.relay.metered.ca:443?transport=tcp', username:'free', credential:'free'},
+];
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -675,10 +711,7 @@ function goToLobby(){
   peer = new Peer(peerId, {
     host: '0.peerjs.com', port: 443, path: '/', secure: true,
     debug: 0,
-    config: { iceServers: [
-      {urls:'stun:stun.l.google.com:19302'},
-      {urls:'stun:stun1.l.google.com:19302'}
-    ]}
+    config: { iceServers: ICE_SERVERS }
   });
 
   peer.on('connection', (c)=>{
@@ -780,10 +813,7 @@ function joinRoom(){
   peer = new Peer(undefined, {
     host: '0.peerjs.com', port: 443, path: '/', secure: true,
     debug: 0,
-    config: { iceServers: [
-      {urls:'stun:stun.l.google.com:19302'},
-      {urls:'stun:stun1.l.google.com:19302'}
-    ]}
+    config: { iceServers: ICE_SERVERS }
   });
   peer.on('open', ()=>{
     conn = peer.connect('apexxi-' + code, {reliable:true});
@@ -882,6 +912,12 @@ function goHome(){
     positions:[], pickedPlayers:[], usedNames:new Set(), lockedChoices:{},
     totalRating:0, selectedLeagues:[], activeSlot:null, activeFilter:null,
     draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null, connected:false};
+  // Reset choice card visuals
+  document.getElementById('ccHost').classList.remove('selected');
+  document.getElementById('ccJoin').classList.remove('selected');
+  document.getElementById('homeNextBtn').disabled = true;
+  document.getElementById('homeError').textContent = '';
+  // Restore lobby UI for next host session
   document.getElementById('lobbyStartBtn').style.display = '';
   document.getElementById('lobbyFormationRow').style.display = 'flex';
   document.querySelectorAll('#lobbyScreen > [style]').forEach(el=>{
@@ -972,7 +1008,16 @@ function openSlot(idx){
   if(G.lockedChoices[idx]){
     renderCards(G.lockedChoices[idx]);
   } else {
-    const pool = shuffle(PLAYERS.filter(p=>p.pos===pos && !G.usedNames.has(p.name))).slice(0,5);
+    // Exclude players already picked AND players already offered in other open slots
+    const offeredElsewhere = new Set();
+    Object.entries(G.lockedChoices).forEach(([slotIdx, pool])=>{
+      if(Number(slotIdx) !== idx) pool.forEach(p=>offeredElsewhere.add(p.name));
+    });
+    const pool = shuffle(PLAYERS.filter(p=>
+      p.pos===pos &&
+      !G.usedNames.has(p.name) &&
+      !offeredElsewhere.has(p.name)
+    )).slice(0,5);
     G.lockedChoices[idx] = pool;
     renderCards(pool);
   }
@@ -993,7 +1038,7 @@ function renderCards(players, filter=null){
   if(!filtered.length){ content.innerHTML='<div class="sp-idle"><p>No players match</p></div>'; return; }
   content.innerHTML = filtered.map(p=>`
     <div class="pick-card" onclick="pickPlayer('${p.name.replace(/'/g,"\\'")}')">
-      <img class="pick-card-img" src="${getImgUrl(p.img)}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='0.3'">
+      ${makeCardImg(p)}
       <div class="pick-card-info"><div class="pcn">${p.name}</div><div class="pcm"><span class="pc-league">${p.league}</span></div></div>
       <div class="pick-card-rating">${p.rating}</div>
     </div>`).join('');
@@ -1020,7 +1065,7 @@ function pickPlayer(name){
   G.activeSlot = null; G.activeFilter = null;
 
   document.getElementById('pslot_'+idx).className = 'pslot filled';
-  document.getElementById('pslotImg_'+idx).innerHTML = `<img src="${getImgUrl(player.img)}" alt="${player.name}" onerror="this.style.opacity='0.3'">`;
+  document.getElementById('pslotImg_'+idx).innerHTML = `<img src="${getImgUrl(player.img)}" alt="${player.name}" onerror="imgFallback(this,'${player.name.replace(/'/g,'')}','${player.pos}')">`;
   document.getElementById('pslotLabel_'+idx).textContent = player.name.split(' ').slice(-1)[0];
 
   document.getElementById('leagueFilters').style.display = 'none';
@@ -1125,9 +1170,9 @@ function showResult(goals, my, opp){
   document.getElementById('r_score').textContent = my.total;
   document.getElementById('r_opp_score').textContent = opp.total;
 
-  const myHTML = G.pickedPlayers.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${G.positions[i]}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('');
+  const myHTML = G.pickedPlayers.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="imgFallback(this,'${p.name.replace(/'/g,'')}','${p.pos}')"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${G.positions[i]}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('');
   const oppPos = FORMATIONS[G.oppFormation||'4-3-3'].positions;
-  const oppHTML = G.oppPicks ? G.oppPicks.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${oppPos[i]||p.pos}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('') : '<div style="color:var(--muted);padding:0.5rem">Squad data unavailable</div>';
+  const oppHTML = G.oppPicks ? G.oppPicks.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="imgFallback(this,'${(p.name||'').replace(/'/g,'')}','${p.pos}')"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${oppPos[i]||p.pos}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('') : '<div style="color:var(--muted);padding:0.5rem">Squad data unavailable</div>';
   document.getElementById('resultTeams').innerHTML=`<div class="result-team"><div class="rt-header">${G.username} (${G.myFormation})</div>${myHTML}</div><div class="result-team"><div class="rt-header">${G.oppUsername} (${G.oppFormation||'–'})</div>${oppHTML}</div>`;
 
   showScreen('resultScreen');
