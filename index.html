@@ -551,34 +551,12 @@ const FORMATIONS={
 // ═══════════════════════════════════════════════
 const getImgUrl = (imgUrl) => {
   if (!imgUrl) return "";
-  // If it's a local path, use as-is
   if (imgUrl.startsWith('./') || imgUrl.startsWith('/')) return imgUrl;
-  // Fix wsrv.nl proxy URLs: ensure the inner url= has https://
-  if (imgUrl.includes('wsrv.nl')) {
-    if (imgUrl.includes('url=i.postimg')) {
-      return imgUrl.replace('url=i.postimg', 'url=https://i.postimg');
-    }
-    return imgUrl;
+  if (imgUrl.includes('url=i.postimg')) {
+    return imgUrl.replace('url=i.postimg', 'url=https://i.postimg');
   }
   return imgUrl;
 };
-
-// Fallback: replace broken img with a styled placeholder
-function imgFallback(imgEl, playerName, pos) {
-  const initials = (playerName || pos || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const hue = [...(playerName||'')].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
-  const parent = imgEl.parentElement;
-  if (!parent) return;
-  parent.style.background = `hsl(${hue},40%,22%)`;
-  parent.innerHTML = `<span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:hsl(${hue},70%,65%);letter-spacing:0.05em;user-select:none">${initials}</span>`;
-}
-
-// Wire up onerror for pick-card images
-function makeCardImg(p) {
-  const url = getImgUrl(p.img);
-  return `<img class="pick-card-img" src="${url}" alt="${p.name}" loading="lazy"
-    onerror="imgFallback(this,'${p.name.replace(/'/g,'')}','${p.pos}')">`;
-}
 
 // ═══════════════════════════════════════════════
 //  ICE / TURN SERVERS (needed for school networks)
@@ -1038,7 +1016,7 @@ function renderCards(players, filter=null){
   if(!filtered.length){ content.innerHTML='<div class="sp-idle"><p>No players match</p></div>'; return; }
   content.innerHTML = filtered.map(p=>`
     <div class="pick-card" onclick="pickPlayer('${p.name.replace(/'/g,"\\'")}')">
-      ${makeCardImg(p)}
+      <img class="pick-card-img" src="${getImgUrl(p.img)}" alt="${p.name}" loading="lazy" onerror="this.style.opacity='0.3'">
       <div class="pick-card-info"><div class="pcn">${p.name}</div><div class="pcm"><span class="pc-league">${p.league}</span></div></div>
       <div class="pick-card-rating">${p.rating}</div>
     </div>`).join('');
@@ -1065,7 +1043,7 @@ function pickPlayer(name){
   G.activeSlot = null; G.activeFilter = null;
 
   document.getElementById('pslot_'+idx).className = 'pslot filled';
-  document.getElementById('pslotImg_'+idx).innerHTML = `<img src="${getImgUrl(player.img)}" alt="${player.name}" onerror="imgFallback(this,'${player.name.replace(/'/g,'')}','${player.pos}')">`;
+  document.getElementById('pslotImg_'+idx).innerHTML = `<img src="${getImgUrl(player.img)}" alt="${player.name}" onerror="this.style.opacity='0.3'">`;
   document.getElementById('pslotLabel_'+idx).textContent = player.name.split(' ').slice(-1)[0];
 
   document.getElementById('leagueFilters').style.display = 'none';
@@ -1170,9 +1148,9 @@ function showResult(goals, my, opp){
   document.getElementById('r_score').textContent = my.total;
   document.getElementById('r_opp_score').textContent = opp.total;
 
-  const myHTML = G.pickedPlayers.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="imgFallback(this,'${p.name.replace(/'/g,'')}','${p.pos}')"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${G.positions[i]}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('');
+  const myHTML = G.pickedPlayers.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${G.positions[i]}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('');
   const oppPos = FORMATIONS[G.oppFormation||'4-3-3'].positions;
-  const oppHTML = G.oppPicks ? G.oppPicks.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="imgFallback(this,'${(p.name||'').replace(/'/g,'')}','${p.pos}')"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${oppPos[i]||p.pos}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('') : '<div style="color:var(--muted);padding:0.5rem">Squad data unavailable</div>';
+  const oppHTML = G.oppPicks ? G.oppPicks.map((p,i)=>p?`<div class="rt-player"><img src="${getImgUrl(p.img)}" onerror="this.style.opacity='0.3'"><span class="rt-pname">${p.name}</span><span class="rt-ppos">${oppPos[i]||p.pos}</span><span class="rt-prating">${p.rating}</span></div>`:'').join('') : '<div style="color:var(--muted);padding:0.5rem">Squad data unavailable</div>';
   document.getElementById('resultTeams').innerHTML=`<div class="result-team"><div class="rt-header">${G.username} (${G.myFormation})</div>${myHTML}</div><div class="result-team"><div class="rt-header">${G.oppUsername} (${G.oppFormation||'–'})</div>${oppHTML}</div>`;
 
   showScreen('resultScreen');
