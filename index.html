@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="no-referrer">
 <title>Apex XI</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -143,26 +143,32 @@ input[type=text]::placeholder{color:var(--muted)}
 /* DRAFT SCREEN - contained, no body scroll needed */
 #draftScreen{overflow:hidden}
 #draftScreen.active{
-  padding:0;justify-content:flex-start;
-  height:100vh;height:100dvh;
+  padding:0;justify-content:flex-start;align-items:stretch;
+  width:100%;height:100vh;height:100dvh;
   overflow:hidden
 }
-.draft-body{flex:1;display:flex;flex-direction:row;min-height:0;overflow:hidden}
+/* CSS grid guarantees pitch (fills remaining space) and the player panel
+   (fixed width) always sit side by side — field on the left, players on
+   the right — with no shrink-to-fit ambiguity on wide/desktop screens. */
+.draft-body{flex:1;display:grid;grid-template-columns:1fr 380px;width:100%;min-height:0;overflow:hidden}
 .pitch-wrap{
-  flex:1;position:relative;overflow:hidden;min-width:0;
+  position:relative;overflow:hidden;min-width:0;height:100%;
   background:linear-gradient(180deg,#1a5c2e 0%,#1f6e35 8%,#1a5c2e 16%,#1f6e35 24%,#1a5c2e 32%,#1f6e35 40%,#1a5c2e 48%,#1f6e35 56%,#1a5c2e 64%,#1f6e35 72%,#1a5c2e 80%,#1f6e35 88%,#1a5c2e 96%,#1f6e35 100%)
 }
 .selection-panel{
-  width:min(340px,42vw);flex-shrink:0;background:var(--s1);
+  background:var(--s1);
   border-left:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;
-  height:100%;min-height:0
+  height:100%;min-height:0;min-width:0
+}
+@media(max-width:980px){
+  .draft-body{grid-template-columns:1fr 320px}
 }
 @media(max-width:700px){
   #draftScreen.active{height:auto;min-height:100vh;min-height:100dvh;overflow-y:auto}
-  .draft-body{flex-direction:column;overflow:visible;flex:none}
-  .pitch-wrap{width:100%;height:70vw;min-height:200px;max-height:360px;flex:none}
-  .selection-panel{width:100%;height:auto;min-height:60vw;max-height:none;border-left:none;border-top:1px solid var(--border);flex:none;overflow:visible}
+  .draft-body{grid-template-columns:1fr;overflow:visible}
+  .pitch-wrap{width:100%;height:70vw;min-height:200px;max-height:360px}
+  .selection-panel{width:100%;height:auto;min-height:60vw;max-height:none;border-left:none;border-top:1px solid var(--border);overflow:visible}
   .sp-cards{max-height:none;overflow:visible}
   #draftScreen::before,#draftScreen::after{display:none}
 }
@@ -559,29 +565,17 @@ const getImgUrl = (imgUrl) => {
 };
 
 // ═══════════════════════════════════════════════
-//  ICE / TURN SERVERS (needed for school networks)
+//  BACKEND SERVER (Socket.io — WebSockets over port 443/HTTPS,
+//  so it works on restrictive networks like school Wi-Fi)
 // ═══════════════════════════════════════════════
-const ICE_SERVERS = [
-  // Google STUN
-  {urls:'stun:stun.l.google.com:19302'},
-  {urls:'stun:stun1.l.google.com:19302'},
-  {urls:'stun:stun2.l.google.com:19302'},
-  // OpenRelay free TURN (helps bypass strict school firewalls/NAT)
-  {urls:'stun:openrelay.metered.ca:80'},
-  {urls:'turn:openrelay.metered.ca:80',   username:'openrelayproject', credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443',  username:'openrelayproject', credential:'openrelayproject'},
-  {urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject'},
-  // Metered free TURN
-  {urls:'turn:a.relay.metered.ca:80',  username:'free', credential:'free'},
-  {urls:'turn:a.relay.metered.ca:443', username:'free', credential:'free'},
-  {urls:'turn:a.relay.metered.ca:443?transport=tcp', username:'free', credential:'free'},
-];
+// CHANGE THIS after you deploy server.js to Render/Railway/etc,
+// e.g. "https://apexxi-backend.onrender.com"
+const SERVER_URL = "https://your-backend-server.onrender.com";
 
 // ═══════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════
-let peer = null;   // This player's Peer object
-let conn = null;   // DataConnection to the other player
+let socket = null;         // Socket.io connection to the backend
 let selectedMode = '';
 let lobbyFormation = '';
 let joinFormation = '';
@@ -592,11 +586,33 @@ let G = {
   positions:[], pickedPlayers:[], usedNames:new Set(),
   lockedChoices:{}, totalRating:0, selectedLeagues:[],
   activeSlot:null, activeFilter:null,
-  draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null
+  draftDone:false, oppDraftDone:false, oppCount:0, oppPicks:null,
+  connected:false
 };
 
-// ─── send helper ───
-function send(msg){ if(conn && conn.open) conn.send(msg); }
+// ─── socket connection (created once, reused for the whole session) ───
+function ensureSocket(){
+  if(socket) return socket;
+  socket = io(SERVER_URL, { transports:['websocket','polling'] });
+  socket.on('game_action', data => handleIncoming(data));
+  socket.on('opponent_left', () => handleDisconnect());
+  socket.on('connect_error', () => {
+    const active = document.querySelector('.screen.active');
+    if(active && active.id === 'lobbyScreen') setLobbyStatus('waiting','Can\'t reach the server — try again.');
+    if(active && active.id === 'joinScreen'){
+      document.getElementById('joinError').textContent = 'Can\'t reach the server. Try again.';
+      resetJoinBtn();
+    }
+  });
+  return socket;
+}
+
+// ─── send helper: relays a game-state message to the other player in the room ───
+function send(msg){
+  if(socket && socket.connected && G.roomCode){
+    socket.emit('game_action', { roomCode:G.roomCode, data:msg });
+  }
+}
 
 // ─── screen helper ───
 function showScreen(id){
@@ -604,10 +620,65 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 
-// ─── destroy peer cleanly ───
-function destroyPeer(){
-  if(conn){ try{conn.close();}catch(e){} conn=null; }
-  if(peer){ try{peer.destroy();}catch(e){} peer=null; }
+// ─── leave whatever room we're currently in (keeps the socket itself alive) ───
+function leaveRoom(){
+  if(socket && G.roomCode){
+    try{ socket.emit('leave_room', { roomCode:G.roomCode }); }catch(e){}
+  }
+  G.roomCode = '';
+  G.connected = false;
+}
+
+// ─── central dispatcher for messages relayed from the other player ───
+function handleIncoming(data){
+  switch(data.type){
+    case 'JOIN':
+      if(G.mode !== 'host') return;
+      G.oppUsername = data.name;
+      G.oppFormation = data.formation;
+      document.getElementById('slotName1').textContent = data.name;
+      document.getElementById('slot1').classList.add('filled');
+      G.connected = true;
+      send({type:'HOST_INFO', name:G.username, hostFormation:lobbyFormation});
+      checkLobbyReady();
+      break;
+    case 'HOST_INFO':
+      if(G.mode !== 'guest') return;
+      G.oppUsername = data.name;
+      G.oppFormation = data.hostFormation;
+      G.connected = true;
+      resetJoinBtn();
+      showGuestLobby();
+      break;
+    case 'HOST_FORMATION_UPDATE':
+      if(G.mode === 'guest') G.oppFormation = data.formation;
+      break;
+    case 'FORMATION_UPDATE':
+      if(G.mode === 'host'){ G.oppFormation = data.formation; checkLobbyReady(); }
+      break;
+    case 'START':
+      if(G.mode === 'guest'){ G.oppFormation = data.hostFormation; initDraft(); }
+      break;
+    case 'PICK_UPDATE':
+      handleOppPickUpdate(data);
+      break;
+    case 'PLAY_AGAIN':
+      G.oppFormation = data.hostFormation || G.oppFormation;
+      initDraft();
+      break;
+    case 'RESULT':
+      if(G.mode === 'guest'){
+        const goals = {a:data.guestGoals, b:data.hostGoals};
+        const my = data.guestScore, opp = data.hostScore;
+        G.oppDraftDone = true;
+        setTimeout(()=>showResult(goals, my, opp), 800);
+      }
+      break;
+    case 'ROOM_CLOSED':
+      leaveRoom();
+      showScreen('homeScreen');
+      break;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -670,7 +741,7 @@ document.getElementById('joinCodeInput').addEventListener('input', checkJoinRead
 //  HOST LOBBY
 // ═══════════════════════════════════════════════
 function goToLobby(){
-  destroyPeer();
+  leaveRoom();
   lobbyFormation = '';
   document.getElementById('lobbyFormationRow').querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
 
@@ -681,62 +752,24 @@ function goToLobby(){
   document.getElementById('lobbyStartBtn').disabled = true;
   setLobbyStatus('waiting', 'Waiting for opponent to join...');
 
-  G.roomCode = String(Math.floor(1000 + Math.random() * 9000));
-  document.getElementById('lobbyCode').textContent = G.roomCode;
+  G.mode = 'host';
   showScreen('lobbyScreen');
-
-  const peerId = 'apexxi-' + G.roomCode;
-  peer = new Peer(peerId, {
-    host: '0.peerjs.com', port: 443, path: '/', secure: true,
-    debug: 0,
-    config: { iceServers: ICE_SERVERS }
-  });
-
-  peer.on('connection', (c)=>{
-    if(conn && conn.open){ c.close(); return; }
-    conn = c;
-    let hostReadySent = false;
-    const sendHostReady = ()=>{
-      if(hostReadySent) return;
-      hostReadySent = true;
-      send({type:'HOST_READY'});
-    };
-    conn.on('data', handleHostData);
-    conn.on('close', ()=>{ if(conn === c) handleDisconnect(); });
-    conn.on('error', ()=>{ if(conn === c) handleDisconnect(); });
-    conn.on('open', sendHostReady);
-    if(conn.open) sendHostReady();
-  });
-
-  peer.on('error', (err)=>{
-    if(err.type === 'unavailable-id'){
-      goToLobby();
-    } else {
-      setLobbyStatus('waiting', 'Connection error — try again.');
-    }
-  });
+  ensureSocket();
+  attemptCreateRoom();
 }
 
-function handleHostData(data){
-  if(data.type === 'JOIN'){
-    G.oppUsername = data.name;
-    G.oppFormation = data.formation;
-    document.getElementById('slotName1').textContent = data.name;
-    document.getElementById('slot1').classList.add('filled');
-    G.connected = true;
-    send({type:'HOST_INFO', name:G.username, hostFormation:lobbyFormation});
-    checkLobbyReady();
-  }
-  if(data.type === 'FORMATION_UPDATE'){
-    G.oppFormation = data.formation;
-    checkLobbyReady();
-  }
-  if(data.type === 'ROOM_CLOSED'){
-    destroyPeer();
-    showScreen('homeScreen');
-  }
-  if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
-  if(data.type === 'PLAY_AGAIN'){ initDraft(); }
+function attemptCreateRoom(){
+  G.roomCode = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById('lobbyCode').textContent = G.roomCode;
+  socket.emit('create_room', { roomCode:G.roomCode, name:G.username }, (res)=>{
+    if(!res || !res.ok){
+      if(res && res.reason === 'taken'){ attemptCreateRoom(); return; }
+      setLobbyStatus('waiting', 'Connection error — try again.');
+      return;
+    }
+    // Room is registered on the server; we now wait for the guest's
+    // JOIN message, relayed via the socket's 'game_action' event.
+  });
 }
 
 function checkLobbyReady(){
@@ -783,72 +816,24 @@ function joinRoom(){
   document.getElementById('joinBtn').disabled = true;
   document.getElementById('joinBtn').textContent = 'CONNECTING...';
 
-  destroyPeer();
+  leaveRoom();
   G.myFormation = joinFormation;
   G.mode = 'guest';
-  G.roomCode = code;
 
-  peer = new Peer(undefined, {
-    host: '0.peerjs.com', port: 443, path: '/', secure: true,
-    debug: 0,
-    config: { iceServers: ICE_SERVERS }
-  });
-  peer.on('open', ()=>{
-    conn = peer.connect('apexxi-' + code, {reliable:true});
-    const timeout = setTimeout(()=>{
-      if(!conn || !conn.open){
-        errEl.textContent = 'Room not found. Check the code and try again.';
-        resetJoinBtn();
-        destroyPeer();
-      }
-    }, 8000);
-
-    conn.on('open', ()=>{
-      clearTimeout(timeout);
-      conn.send({type:'JOIN', name:G.username, formation:joinFormation});
-    });
-    conn.on('data', (data)=>{
-      if(data.type === 'HOST_READY'){
-        conn.send({type:'JOIN', name:G.username, formation:joinFormation});
-      }
-      if(data.type === 'HOST_INFO'){
-        clearTimeout(timeout);
-        G.oppUsername = data.name;
-        G.oppFormation = data.hostFormation;
-        G.connected = true;
-        resetJoinBtn();
-        showGuestLobby();
-      }
-      if(data.type === 'HOST_FORMATION_UPDATE'){
-        G.oppFormation = data.formation;
-      }
-      if(data.type === 'START'){
-        G.oppFormation = data.hostFormation;
-        initDraft();
-      }
-      if(data.type === 'ROOM_CLOSED'){
-        destroyPeer();
-        showScreen('homeScreen');
-      }
-      if(data.type === 'PICK_UPDATE') handleOppPickUpdate(data);
-      if(data.type === 'PLAY_AGAIN'){
-        G.oppFormation = data.hostFormation;
-        initDraft();
-      }
-      if(data.type === 'RESULT'){
-        const goals = {a: data.guestGoals, b: data.hostGoals};
-        const my = data.guestScore;
-        const opp = data.hostScore;
-        G.oppDraftDone = true;
-        setTimeout(()=>showResult(goals, my, opp), 800);
-      }
-    });
-    conn.on('close', ()=>handleDisconnect());
-    conn.on('error', ()=>{
-      errEl.textContent = 'Could not connect. Room may be full or closed.';
+  ensureSocket();
+  socket.emit('join_room', { roomCode:code, name:G.username }, (res)=>{
+    if(!res || !res.ok){
+      const reason = res && res.reason;
+      errEl.textContent = reason === 'not_found'
+        ? 'Room not found. Check the code and try again.'
+        : reason === 'full'
+        ? 'That room is already full.'
+        : 'Could not connect. Try again.';
       resetJoinBtn();
-      destroyPeer();
-    });
+      return;
+    }
+    G.roomCode = code;
+    send({type:'JOIN', name:G.username, formation:joinFormation});
   });
 }
 
@@ -878,13 +863,13 @@ function leaveJoinScreen(){
   document.getElementById('joinFormationRow').querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
   joinFormation = '';
   document.getElementById('joinBtn').disabled = true;
-  destroyPeer();
+  leaveRoom();
   showScreen('homeScreen');
 }
 
 function goHome(){
   send({type:'ROOM_CLOSED'});
-  destroyPeer();
+  leaveRoom();
   selectedMode = ''; lobbyFormation = ''; joinFormation = '';
   G = {username:G.username, mode:'', roomCode:'', myFormation:'', oppFormation:'', oppUsername:'',
     positions:[], pickedPlayers:[], usedNames:new Set(), lockedChoices:{},
