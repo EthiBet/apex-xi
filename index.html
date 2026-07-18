@@ -570,7 +570,7 @@ const getImgUrl = (imgUrl) => {
 // ═══════════════════════════════════════════════
 // CHANGE THIS after you deploy server.js to Render/Railway/etc,
 // e.g. "https://apexxi-backend.onrender.com"
-const SERVER_URL = "https://apexxi-backend.onrender.com/";
+const SERVER_URL = "https://apexxi-backend.onrender.com";
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -591,21 +591,60 @@ let G = {
 };
 
 // ─── socket connection (created once, reused for the whole session) ───
+let connectAttempts = 0;
+let hasConnectedOnce = false;
+
 function ensureSocket(){
   if(socket) return socket;
-  socket = io(SERVER_URL, { transports:['websocket','polling'] });
+  socket = io(SERVER_URL, {
+    transports: ['websocket','polling'],
+    reconnectionAttempts: Infinity,
+    reconnectionDelayMax: 5000,
+    timeout: 20000
+  });
+
   socket.on('game_action', data => handleIncoming(data));
   socket.on('opponent_left', () => handleDisconnect());
-  socket.on('connect_error', () => {
+
+  socket.on('connect', () => {
+    hasConnectedOnce = true;
+    connectAttempts = 0;
+    // Clear any stale "connecting/can't reach" messaging now that we're actually online.
     const active = document.querySelector('.screen.active');
-    if(active && active.id === 'lobbyScreen') setLobbyStatus('waiting','Can\'t reach the server — try again.');
+    if(active && active.id === 'lobbyScreen' && !G.connected){
+      setLobbyStatus('waiting', 'Waiting for opponent to join...');
+    }
     if(active && active.id === 'joinScreen'){
-      document.getElementById('joinError').textContent = 'Can\'t reach the server. Try again.';
-      resetJoinBtn();
+      const errEl = document.getElementById('joinError');
+      if(errEl && /Can't reach|Connecting/.test(errEl.textContent)) errEl.textContent = '';
     }
   });
+
+  socket.on('connect_error', () => {
+    connectAttempts++;
+    const active = document.querySelector('.screen.active');
+    // Free hosting (Render, etc.) can take 20-50s to wake up from sleep.
+    // Don't scare the user on the first few retries — only report a real
+    // failure once we've been trying for a while.
+    const stillWakingUp = connectAttempts <= 6;
+    const msg = stillWakingUp
+      ? 'Connecting to server… (can take up to a minute if it was asleep)'
+      : 'Can\'t reach the server — check your connection and try again.';
+    if(active && active.id === 'lobbyScreen') setLobbyStatus('waiting', msg);
+    if(active && active.id === 'joinScreen'){
+      document.getElementById('joinError').textContent = msg;
+      if(!stillWakingUp) resetJoinBtn();
+    }
+  });
+
   return socket;
 }
+
+// Wake the server up as soon as the page loads, well before the player
+// finishes typing a name and picking a mode — hides most of the cold-start
+// delay behind normal UI navigation instead of it happening right when
+// they click Host/Join.
+ensureSocket();
 
 // ─── send helper: relays a game-state message to the other player in the room ───
 function send(msg){
