@@ -82,7 +82,7 @@ input[type=text]::placeholder{color:var(--muted)}
 /* HOME screen keeps its stadium image on top of pitch */
 #homeScreen::before{
   background-image:
-    url("https://t4.ftcdn.net/jpg/04/17/36/11/360_F_417361125_RnrhT3Np0zB0UpeD7QlwuOoyghEGGjBX.jpg");
+    url("images/background.jpg");
   background-size:cover;background-position:center;opacity:0.55;
 }
 #homeScreen::after{
@@ -254,7 +254,7 @@ input[type=text]::placeholder{color:var(--muted)}
 
 <!-- ░░░ HOME ░░░ -->
 <div id="homeScreen" class="screen active">
-  <div class="logo-mark"><img src="https://png.pngtree.com/png-vector/20250923/ourmid/pngtree-the-fifa-world-cup-trophy-png-image_17551611.webp" alt="UCL"></div>
+  <div class="logo-mark"><img src="images/logo.png" alt="UCL"></div>
   <div class="game-title">APEX XI</div>
   <div class="game-tagline">Draft. Compete. Dominate.</div>
   <div class="input-wrap">
@@ -281,7 +281,7 @@ input[type=text]::placeholder{color:var(--muted)}
 <!-- ░░░ QR SCREEN ░░░ -->
 <div id="qrScreen" class="screen">
   <button class="back-btn" onclick="showScreen('homeScreen')">← Back</button>
-  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="https://png.pngtree.com/png-vector/20250923/ourmid/pngtree-the-fifa-world-cup-trophy-png-image_17551611.webp" alt="UCL"></div>
+  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="images/logo.png" alt="UCL"></div>
   <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:0.2rem">Share Apex XI</div>
   <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">Scan to open on another device</div>
   <div class="qr-box">
@@ -294,7 +294,7 @@ input[type=text]::placeholder{color:var(--muted)}
 <!-- ░░░ LOBBY (HOST) ░░░ -->
 <div id="lobbyScreen" class="screen">
   <button class="back-btn" onclick="goHome()">← Back</button>
-  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="https://png.pngtree.com/png-vector/20250923/ourmid/pngtree-the-fifa-world-cup-trophy-png-image_17551611.webp" alt="UCL"></div>
+  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="images/logo.png" alt="UCL"></div>
   <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:0.2rem">Room Lobby</div>
   <div style="font-size:0.78rem;color:var(--muted);margin-bottom:1.2rem">Share this code with your opponent</div>
   <div class="room-code-display">
@@ -332,7 +332,7 @@ input[type=text]::placeholder{color:var(--muted)}
 <!-- ░░░ JOIN SCREEN ░░░ -->
 <div id="joinScreen" class="screen">
   <button class="back-btn" onclick="leaveJoinScreen()">← Back</button>
-  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="https://png.pngtree.com/png-vector/20250923/ourmid/pngtree-the-fifa-world-cup-trophy-png-image_17551611.webp" alt="UCL"></div>
+  <div class="logo-mark" style="width:44px;height:44px;margin-bottom:0.8rem"><img src="images/logo.png" alt="UCL"></div>
   <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--gold);margin-bottom:1.5rem">Join a Room</div>
   <div class="input-wrap">
     <label>Room Code</label>
@@ -425,66 +425,93 @@ input[type=text]::placeholder{color:var(--muted)}
 //  PLAYERS
 // ═══════════════════════════════════════════════
 const PLAYERS=[
-  {name:"Thibaut Courtois",pos:"GK",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/PJHbNFx7/ezgif-8bfd7372ff671f6e.png",league:"La Liga"},
-  {name:"Alisson",pos:"GK",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/9FKMpwd8/ezgif-8722324aef2eb61a.png",league:"Prem"},
-  {name:"Marc-Andre ter Stegen",pos:"GK",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/rmZcw7Qq/ezgif-893a84ce01090a48.png",league:"La Liga"},
-  {name:"Emiliano Martinez",pos:"GK",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/x1G2zXtp/ezgif-8029d353769fde33.png",league:"Prem"},
-  {name:"Mike Maignan",pos:"GK",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/htKSM8zR/ezgif-8618e209dce2a8a8.png",league:"Serie A"},
-  {name:"Gianluigi Donnarumma",pos:"GK",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/zvwsRMk8/ezgif-89158c5eabf87435.png",league:"Prem"},
-  {name:"Edwin van der Sar",pos:"GK",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/jjkkwK01/ezgif-836c117fcb427714.png",league:"Icon"},
-  {name:"Lev Yashin",pos:"GK",rating:93,img:"https://wsrv.nl/?url=i.postimg.cc/vMXywnJS/ezgif-813614cd23a5cbda.png",league:"Icon"},
+  {name:"Thibaut Courtois",pos:"GK",rating:89,img:"images/courtois.webp",league:"La Liga"},
+  {name:"Alisson",pos:"GK",rating:89,img:"images/alisson.webp",league:"Prem"},
+  {name:"Marc-Andre ter Stegen",pos:"GK",rating:89,img:"images/terStegen.webp",league:"La Liga"},
+  {name:"Emiliano Martinez",pos:"GK",rating:88,img:"images/emilianoMartinez.webp",league:"Prem"},
+  {name:"Mike Maignan",pos:"GK",rating:88,img:"images/maignan.webp",league:"Serie A"},
+  {name:"Gianluigi Donnarumma",pos:"GK",rating:89,img:"images/donnarumma.webp",league:"Prem"},
+  {name:"Edwin van der Sar",pos:"GK",rating:88,img:"images/vanDerSar.webp",league:"Icon"},
+  {name:"Lev Yashin",pos:"GK",rating:93,img:"images/yashin.webp",league:"Icon"},
   {name:"Ederson",pos:"GK",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/xT0746RL/ezgif-8326311acd03fb1f.png",league:"Prem"},
-  {name:"Gianluigi Buffon",pos:"GK",rating:92,img:"https://wsrv.nl/?url=i.postimg.cc/ncB8ys8y/ezgif-83c8b43c5fecbd8b.png",league:"Icon"},
-  {name:"Unai Simon",pos:"GK",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/JhtWFKMp/ezgif-7eb908664d03118b.png",league:"La Liga"},
-  {name:"Manuel Neuer",pos:"GK",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/g2T7xpb3/ezgif-7ed7905f4711a810.png",league:"Bundesliga"},
-  {name:"William Saliba",pos:"CB",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/tJpSKCWL/ezgif-7b042b156302cc2d.png",league:"Prem"},
-  {name:"Antonio Rudiger",pos:"CB",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/PqDSN84t/ezgif-751c0e63571ff616.png",league:"La Liga"},
-  {name:"Ruben Dias",pos:"CB",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/cLgm58PB/ezgif-7ff8d3cba4e30b56.png",league:"Prem"},
-  {name:"Virgil van Dijk",pos:"CB",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/DwXrc3bj/ezgif-7892a2f6f6b1588c.png",league:"Prem"},
-  {name:"Gabriel Magalhaes",pos:"CB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/0NCJtk5m/ezgif-778c1e4236a967a7.png",league:"Prem"},
-  {name:"Alessandro Bastoni",pos:"CB",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/wjpXFb5b/ezgif-74ba4ab51037fae6.png",league:"Serie A"},
-  {name:"Eder Militao",pos:"CB",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/KcT3VDYt/ezgif-7c356ef45afc69b0.png",league:"La Liga"},
-  {name:"Marquinhos",pos:"CB",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/d3QM89H8/ezgif-7f40357e51a08e9f.png",league:"Ligue 1"},
-  {name:"Paolo Maldini",pos:"CB",rating:94,img:"https://wsrv.nl/?url=i.postimg.cc/DyZFRffh/ezgif-8318df08e55112d3.png",league:"Icon"},
-  {name:"Cristian Romero",pos:"CB",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/RV3s28Hw/ezgif-766f6cc574536d2f.png",league:"Prem"},
-  {name:"Alphonso Davies",pos:"LB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/FKmQrmbv/ezgif-563b18c34ed13b2a.png",league:"Bundesliga"},
-  {name:"Theo Hernandez",pos:"LB",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/9XS54yPT/ezgif-5a7d95923ba6a2bf.png",league:"Serie A"},
-  {name:"Andrew Robertson",pos:"LB",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/wTHPRFyg/ezgif-5d44db86fc6851a0.png",league:"Prem"},
-  {name:"Nuno Mendes",pos:"LB",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/rpdY2Pb7/ezgif-5e7346ce0acf0fe6.png",league:"Ligue 1"},
-  {name:"Federico Dimarco",pos:"LB",rating:85,img:"https://wsrv.nl/?url=i.postimg.cc/qM5sHvdS/ezgif-5676348248050a5b.png",league:"Serie A"},
-  {name:"Ferland Mendy",pos:"LB",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/SjbRG39g/ezgif-2785363519b54f70.png",league:"La Liga"},
-  {name:"Roberto Carlos",pos:"LB",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/W1YhCYpx/ezgif-6a81cf6b72842769.png",league:"Icon"},
-  {name:"Trent Alexander-Arnold",pos:"RB",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/MTfmM84V/ezgif-4500625d719726b2.png",league:"Prem"},
-  {name:"Achraf Hakimi",pos:"RB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/RFJL6z8f/ezgif-496b3d50b2a4a800.png",league:"Ligue 1"},
-  {name:"Dani Carvajal",pos:"RB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/B6m7RwnS/ezgif-29de49f48c1adbf9.png",league:"La Liga"},
-  {name:"Kyle Walker",pos:"RB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/1tv7bY3s/ezgif-29e22c80b8d6f637.png",league:"Prem"},
-  {name:"Jules Kounde",pos:"RB",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/gJgt1B2d/ezgif-2f0ac56835ad3cd5.png",league:"La Liga"},
-  {name:"Ben White",pos:"RB",rating:83,img:"https://wsrv.nl/?url=i.postimg.cc/C1cr96xk/ezgif-2fd705eaaeb65286.png",league:"Prem"},
-  {name:"Reece James",pos:"RB",rating:85,img:"https://wsrv.nl/?url=i.postimg.cc/B6m7Rwn5/ezgif-208a856030506338.png",league:"Prem"},
-  {name:"Diogo Dalot",pos:"RB",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/zv32NSyd/ezgif-2d8dc754815f8a32.png",league:"Prem"},
-  {name:"Denzel Dumfries",pos:"RB",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/nrMSxYXw/ezgif-249ce46eaa747dc2.png",league:"Serie A"},
-  {name:"Cafu",pos:"RB",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/4dP0JcKk/ezgif-535282b8c7a858b0.png",league:"Icon"},
-  {name:"Rodri",pos:"CDM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/Bb5mQNxk/ezgif-7490a71c402789a0.png",league:"Prem"},
-  {name:"Declan Rice",pos:"CDM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/sxPTDKYX/ezgif-723623c1e43f68e0.png",league:"Prem"},
-  {name:"N'Golo Kanté",pos:"CDM",rating:92,img:"https://wsrv.nl/?url=i.postimg.cc/vT70HXrT/ezgif-72eb7769f164500c.png",league:"Super Lig"},
-  {name:"Joshua Kimmich",pos:"CDM",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/T1jtYQVh/ezgif-702d40675007cf78.png",league:"Bundesliga"},
-  {name:"Casemiro",pos:"CDM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/CMbPNMWc/ezgif-763ad40b216ed49e.png",league:"Prem"},
-  {name:"Hakan Calhanoglu",pos:"CDM",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/wTHWb8zt/ezgif-7cfc5c60de4f938f.png",league:"Serie A"},
-  {name:"Claude Makélélé",pos:"CDM",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/GmzLgb14/ezgif-2b8a8e1db9d2d883.png",league:"Icon"},
-  {name:"Granit Xhaka",pos:"CDM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/RZGVnBSW/ezgif-70e7f9c26f2428cc.png",league:"Bundesliga"},
-  {name:"Douglas Luiz",pos:"CDM",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/jSvdJbxC/ezgif-78a059729abec2ed.png",league:"Serie A"},
-  {name:"Federico Valverde",pos:"CM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/MKRXxJxg/ezgif-45bb08b6ed639a2e.png",league:"La Liga"},
-  {name:"Vitinha",pos:"CM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/dtdDvcvb/ezgif-4591b7f1624c7d6c.png",league:"Ligue 1"},
-  {name:"Alexis Mac Allister",pos:"CM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/pX8yxMx7/ezgif-47a1dbb7942418cc.png",league:"Prem"},
-  {name:"Bruno Guimarães",pos:"CM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/ZK30ZzZ2/ezgif-433c713a21ca0a17.png",league:"Prem"},
-  {name:"Pedri",pos:"CM",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/G2Vhwq5V/ezgif-406145537d62ba10.png",league:"La Liga"},
-  {name:"Luka Modric",pos:"CM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/hj6PWpYc/ezgif-4c10848e536eab74.png",league:"La Liga"},
-  {name:"Toni Kroos",pos:"CM",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/cH24yXzC/ezgif-45d468a82da66027.png",league:"Icon"},
-  {name:"Enzo Fernandez",pos:"CM",rating:91,img:"https://wsrv.nl/?url=i.postimg.cc/FHNF4fTc/ezgif-4ee0c8effa078c0d.png",league:"Prem"},
-  {name:"Frenkie de Jong",pos:"CM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/Z5HbKTQs/ezgif-45fa432bd94b864b.png",league:"La Liga"},
-  {name:"Bernardo Silva",pos:"CM",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/VkgfLYhG/ezgif-4fb99b75e3af7f11.png",league:"Prem"},
-  {name:"Lothar Matthäus",pos:"CM",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/13QBfXgy/ezgif-8ab27c5210a49e9e.png",league:"Icon"},
-  {name:"Eduardo Camavinga",pos:"CM",rating:87,img:"https://wsrv.nl/?url=i.postimg.cc/0ynk284L/ezgif-49f47ee516a245a2.png",league:"La Liga"},
+  {name:"Gianluigi Buffon",pos:"GK",rating:92,img:"images/buffon.webp",league:"Icon"},
+  {name:"Unai Simon",pos:"GK",rating:90,img:"images/unaiSimon.webp",league:"La Liga"},
+  {name:"Manuel Neuer",pos:"GK",rating:86,img:"images/neuer.webp",league:"Bundesliga"},
+  {name:"Diogo Costa",pos:"GK",rating:84,img:"images/diogoCosta.webp",league:"Liga Portugal"},
+  {name:"Yann Sommer",pos:"GK",rating:87,img:"images/sommer.webp",league:"Serie A"},
+  {name:"Guglielmo Vicario",pos:"GK",rating:87,img:"images/vicario.webp",league:"Prem"},
+  {name:"William Saliba",pos:"CB",rating:90,img:"images/saliba.webp",league:"Prem"},
+  {name:"Antonio Rudiger",pos:"CB",rating:91,img:"images/rudinger.webp",league:"La Liga"},
+  {name:"Ruben Dias",pos:"CB",rating:86,img:"images/rubenDias.webp",league:"Prem"},
+  {name:"Virgil van Dijk",pos:"CB",rating:91,img:"images/vanDijk.webp",league:"Prem"},
+  {name:"Gabriel Magalhaes",pos:"CB",rating:89,img:"images/gabriel.webp",league:"Prem"},
+  {name:"Alessandro Bastoni",pos:"CB",rating:87,img:"images/bastoni.webp",league:"Serie A"},
+  {name:"Eder Militao",pos:"CB",rating:88,img:"images/militao.webp",league:"La Liga"},
+  {name:"Marquinhos",pos:"CB",rating:88,img:"images/marquinhos.webp",league:"Ligue 1"},
+  {name:"Paolo Maldini",pos:"CB",rating:94,img:"images/maldini.webp",league:"Icon"},
+  {name:"Cristian Romero",pos:"CB",rating:86,img:"images/romero.webp",league:"Prem"},
+  {name:"Nathan Aké",pos:"CB",rating:90,img:"images/ake.webp",league:"Prem"},
+  {name:"Nico Schlotterbeck",pos:"CB",rating:85,img:"images/schlotterbeck.webp",league:"Bundesliga"},
+  {name:"John Stones",pos:"CB",rating:82,img:"images/stones.webp",league:"Prem"},
+  {name:"Pau Torres",pos:"CB",rating:80,img:"images/torres.webp",league:"Prem"},
+  {name:"Micky van de Ven",pos:"CB",rating:84,img:"images/vanDeVen.webp",league:"Prem"},
+  {name:"Alphonso Davies",pos:"LB",rating:89,img:"images/davies.webp",league:"Bundesliga"},
+  {name:"Theo Hernandez",pos:"LB",rating:88,img:"images/hernandez.webp",league:"Serie A"},
+  {name:"Andrew Robertson",pos:"LB",rating:86,img:"images/robertson.webp",league:"Prem"},
+  {name:"Nuno Mendes",pos:"LB",rating:86,img:"images/nunoMendes.webp",league:"Ligue 1"},
+  {name:"Federico Dimarco",pos:"LB",rating:85,img:"images/dimarco.webp",league:"Serie A"},
+  {name:"Ferland Mendy",pos:"LB",rating:87,img:"images/mendy.webp",league:"La Liga"},
+  {name:"Roberto Carlos",pos:"LB",rating:91,img:"images/robertoCarlos.webp",league:"Icon"},
+  {name:"Pervis Estupiñán",pos:"LB",rating:87,img:"images/esstupinan.webp",league:"Prem"},
+  {name:"Miguel Gutierrez",pos:"LB",rating:81,img:"images/gutierrez.webp",league:"La Liga"},
+  {name:"Josko Gvardiol",pos:"LB",rating:84,img:"images/gvardiol.webp",league:"Prem"},
+  {name:"Antonee Robinson",pos:"LB",rating:82,img:"images/robinson.webp",league:"Prem"},
+  {name:"Luke Shaw",pos:"LB",rating:79,img:"images/shaw.webp",league:"Prem"},
+  {name:"Oleksandr Zinchenko",pos:"LB",rating:77,img:"images/zinchenko.webp",league:"Eredivisie"},
+  {name:"Trent Alexander-Arnold",pos:"RB",rating:87,img:"images/alexander-arnold.webp",league:"Prem"},
+  {name:"Achraf Hakimi",pos:"RB",rating:89,img:"images/hakimi.webp",league:"Ligue 1"},
+  {name:"Dani Carvajal",pos:"RB",rating:89,img:"images/carvajal.webp",league:"La Liga"},
+  {name:"Kyle Walker",pos:"RB",rating:89,img:"images/walker.webp",league:"Prem"},
+  {name:"Jules Kounde",pos:"RB",rating:88,img:"images/kounde.webp",league:"La Liga"},
+  {name:"Ben White",pos:"RB",rating:83,img:"images/benWhite.webp",league:"Prem"},
+  {name:"Reece James",pos:"RB",rating:85,img:"images/rJames.webp",league:"Prem"},
+  {name:"Diogo Dalot",pos:"RB",rating:87,img:"images/dalot.webp",league:"Prem"},
+  {name:"Denzel Dumfries",pos:"RB",rating:89,img:"images/dumfries.webp",league:"Serie A"},
+  {name:"Cafu",pos:"RB",rating:91,img:"images/cafu.webp",league:"Icon"},
+  {name:"João Cancelo",pos:"RB",rating:87,img:"images/cancelo.webp",league:"Saudi Pro"},
+  {name:"Konrad Laimer",pos:"RB",rating:82,img:"images/laimer.webp",league:"Bundesliga"},
+  {name:"Nahuel Molina",pos:"RB",rating:87,img:"images/molina.webp",league:"La Liga"},
+  {name:"Pedro Porro",pos:"RB",rating:82,img:"images/porro.webp",league:"Prem"},
+  {name:"Kieran Trippier",pos:"RB",rating:80,img:"images/trippier.webp",league:"Prem"},
+  {name:"Rodri",pos:"CDM",rating:91,img:"images/rodri.webp",league:"Prem"},
+  {name:"Declan Rice",pos:"CDM",rating:91,img:"images/rice.webp",league:"Prem"},
+  {name:"N'Golo Kanté",pos:"CDM",rating:92,img:"images/kante.webp",league:"Super Lig"},
+  {name:"Joshua Kimmich",pos:"CDM",rating:90,img:"images/kimmich.webp",league:"Bundesliga"},
+  {name:"Casemiro",pos:"CDM",rating:91,img:"images/casemiro.webp",league:"Prem"},
+  {name:"Hakan Calhanoglu",pos:"CDM",rating:87,img:"images/calhanoglu.webp",league:"Serie A"},
+  {name:"Claude Makélélé",pos:"CDM",rating:87,img:"images/makelele.webp",league:"Icon"},
+  {name:"Granit Xhaka",pos:"CDM",rating:89,img:"images/xhaka.webp",league:"Bundesliga"},
+  {name:"Douglas Luiz",pos:"CDM",rating:90,img:"images/douglasLuiz.webp",league:"Serie A"},
+  {name:"Amadou Onana",pos:"CDM",rating:79,img:"images/onana.webp",league:"Prem"},
+  {name:"Joao Palhinha",pos:"CDM",rating:83,img:"images/palhinha.webp",league:"Prem"},
+  {name:"Aurelien Tchouameni",pos:"CDM",rating:86,img:"images/tchouameni.webp",league:"La Liga"},
+  {name:"Manuel Ugarte",pos:"CDM",rating:79,img:"images/ugarte.webp",league:"Prem"},
+  {name:"Warren Zaire-Emery",pos:"CDM",rating:80,img:"images/zaireEmery.webp",league:"Ligue 1"},
+  {name:"Federico Valverde",pos:"CM",rating:91,img:"images/valverde.webp",league:"La Liga"},
+  {name:"Vitinha",pos:"CM",rating:91,img:"images/vitinha.webp",league:"Ligue 1"},
+  {name:"Alexis Mac Allister",pos:"CM",rating:89,img:"images/macAllister.webp",league:"Prem"},
+  {name:"Bruno Guimarães",pos:"CM",rating:89,img:"images/guimaraes.webp",league:"Prem"},
+  {name:"Pedri",pos:"CM",rating:90,img:"images/pedri.webp",league:"La Liga"},
+  {name:"Luka Modric",pos:"CM",rating:89,img:"images/modric.webp",league:"La Liga"},
+  {name:"Toni Kroos",pos:"CM",rating:90,img:"images/kroos.webp",league:"Icon"},
+  {name:"Enzo Fernandez",pos:"CM",rating:91,img:"images/fernandez.webp",league:"Prem"},
+  {name:"Frenkie de Jong",pos:"CM",rating:89,img:"images/deJong.webp",league:"La Liga"},
+  {name:"Bernardo Silva",pos:"CM",rating:87,img:"images/silva.webp",league:"Prem"},
+  {name:"Lothar Matthäus",pos:"CM",rating:90,img:"images/matthaus.webp",league:"Icon"},
+  {name:"Eduardo Camavinga",pos:"CM",rating:87,img:"images/camavinga.webp",league:"La Liga"},
+  {name:"Pape Gueye",pos:"CM",rating:85,img:"images/gueye.webp",league:"La Liga"},
+  {name:"Mateo Kovacic",pos:"CM",rating:83,img:"images/kovacic.webp",league:"Prem"},
+  {name:"Paul Pogba",pos:"CM",rating:89,img:"images/pogba.webp",league:"Ligue 1"},
   {name:"Florian Wirtz",pos:"CAM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/qvVQwKkM/ezgif-44438528fff4aacc.png",league:"Bundesliga"},
   {name:"Kevin De Bruyne",pos:"CAM",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/mgfVj9bb/ezgif-408d4349ce1c938e.png",league:"Serie A"},
   {name:"Mario Götze",pos:"CAM",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/PqdyskpQ/ezgif-4c41c6eb46d815a7.png",league:"Bundesliga"},
@@ -529,8 +556,8 @@ const PLAYERS=[
   {name:"Erling Haaland",pos:"ST",rating:92,img:"https://wsrv.nl/?url=i.postimg.cc/q7FcF3sb/ezgif-55dec9b8411a95ad.png",league:"Prem"},
   {name:"Harry Kane",pos:"ST",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/R0Y1YH7G/ezgif-5bc88caa12f0b9c0.png",league:"Bundesliga"},
   {name:"Robert Lewandowski",pos:"ST",rating:88,img:"https://wsrv.nl/?url=i.postimg.cc/zfQwQgCj/ezgif-55eb8674b3662704.png",league:"La Liga"},
-  {name:"Lautaro Martinez",pos:"ST",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/fbP7P9cH/ezgif-584f3b74ceab10e8.png",league:"Serie A"},
-  {name:"Julian Alvarez",pos:"ST",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/T1MVdvHK/ezgif-5c2a57102ae0f6d8.png",league:"La Liga"},
+  {name:"Lautaro Martinez",pos:"ST",rating:89,img:"images/martinez.webp",league:"Serie A"},
+  {name:"Julian Alvarez",pos:"ST",rating:89,img:"images/alvarez.webp",league:"La Liga"},
   {name:"Alexander Isak",pos:"ST",rating:89,img:"https://wsrv.nl/?url=i.postimg.cc/gjFVzbBw/ezgif-59efdf43c82c8495.png",league:"Prem"},
   {name:"Ollie Watkins",pos:"ST",rating:86,img:"https://wsrv.nl/?url=i.postimg.cc/prbfWM1h/ezgif-59cced4ad32f3fc8.png",league:"Prem"},
   {name:"Lionel Messi",pos:"ST",rating:90,img:"https://wsrv.nl/?url=i.postimg.cc/jddznWkH/ezgif-8f168334773a31d7.png",league:"MLS"},
@@ -570,7 +597,10 @@ const getImgUrl = (imgUrl) => {
 // ═══════════════════════════════════════════════
 // CHANGE THIS after you deploy server.js to Render/Railway/etc,
 // e.g. "https://apexxi-backend.onrender.com"
-const SERVER_URL = "https://apexxi-backend.onrender.com";
+const SERVER_URL = "https://your-backend-server.onrender.com";
+// Unique ID for THIS game — keeps its rooms separate from any other
+// game sharing the same backend/server. Give each game its own value.
+const GAME_ID = "apexxi";
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -649,7 +679,7 @@ ensureSocket();
 // ─── send helper: relays a game-state message to the other player in the room ───
 function send(msg){
   if(socket && socket.connected && G.roomCode){
-    socket.emit('game_action', { roomCode:G.roomCode, data:msg });
+    socket.emit('game_action', { gameId:GAME_ID, roomCode:G.roomCode, data:msg });
   }
 }
 
@@ -800,7 +830,7 @@ function goToLobby(){
 function attemptCreateRoom(){
   G.roomCode = String(Math.floor(1000 + Math.random() * 9000));
   document.getElementById('lobbyCode').textContent = G.roomCode;
-  socket.emit('create_room', { roomCode:G.roomCode, name:G.username }, (res)=>{
+  socket.emit('create_room', { gameId:GAME_ID, roomCode:G.roomCode, name:G.username }, (res)=>{
     if(!res || !res.ok){
       if(res && res.reason === 'taken'){ attemptCreateRoom(); return; }
       setLobbyStatus('waiting', 'Connection error — try again.');
@@ -860,7 +890,7 @@ function joinRoom(){
   G.mode = 'guest';
 
   ensureSocket();
-  socket.emit('join_room', { roomCode:code, name:G.username }, (res)=>{
+  socket.emit('join_room', { gameId:GAME_ID, roomCode:code, name:G.username }, (res)=>{
     if(!res || !res.ok){
       const reason = res && res.reason;
       errEl.textContent = reason === 'not_found'
