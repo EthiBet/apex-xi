@@ -266,7 +266,7 @@ input[type=text]::placeholder{color:var(--muted)}
   </div>
    <button class="btn btn-gold" id="homeNextBtn" onclick="homeNext()" disabled>Continue</button>
   <div class="error-msg" id="homeError"></div>
-   <button>class="btn btn-qr" onclick="showQR()">📱 Share / QR Code</button>
+   <button class="btn btn-qr" onclick="showQR()">📱 Share / QR Code</button>
 </div>
 
 <!-- ░░░ QR SCREEN ░░░ -->
@@ -663,43 +663,44 @@ const getImgUrl = (imgUrl) => {
 };
 
 // ═══════════════════════════════════════════════
-//  BACKEND SERVER (Socket.io — primary transport)
+//  MULTIPLAYER BACKEND
+//  Base44 is used ONLY as a headless matchmaking database: each room
+//  stores a 4-digit code plus each player's PeerJS peer ID. Once the
+//  guest reads the host's peer ID from Base44 and opens a direct
+//  PeerJS/WebRTC data connection, Base44 is not touched again for that
+//  room — every gameplay message (formation picks, draft progress,
+//  results) flows peer-to-peer from then on.
 // ═══════════════════════════════════════════════
 const GAME_ID = "apexxi";
 
-// ═══════════════════════════════════════════════
-//  PEER-TO-PEER FALLBACK (PeerJS / WebRTC)
-//  If the Socket.io server can't be reached (or errors out) within
-//  FALLBACK_TIMEOUT_MS of attempting to host/join, we automatically
-//  switch to a direct peer-to-peer connection instead. Room codes
-//  double as the PeerJS peer ID (namespaced by GAME_ID), so the same
-//  4-digit code works for either transport without the player having
-//  to know or care which one ends up being used.
-// ═══════════════════════════════════════════════
-const FALLBACK_TIMEOUT_MS = 7000;
-const PEER_ID_PREFIX = 'apexxi-' + GAME_ID + '-';
-let peer = null;
-let peerConn = null;
-let usingPeer = false;
+// TODO: paste your Base44 app ID here (find it in the Base44 editor URL)
+const BASE44_APP_ID = "YOUR-BASE44-APP-ID";
+let base44 = null;
+(async () => {
+  try {
+    const { createClient } = await import('https://esm.sh/@base44/sdk');
+    base44 = createClient({ appId: BASE44_APP_ID });
+  } catch (err) {
+    console.error('Base44 SDK failed to load — multiplayer matchmaking is unavailable.', err);
+  }
+})();
 
-function getPeerId(code){ return PEER_ID_PREFIX + code; }
-
-function updateConnBadge(){
-  const el = document.getElementById('connBadge');
-  const active = document.querySelector('.screen.active');
-  if (active && active.id === 'homeScreen') { el.style.display = 'none'; return; }
-  if (!G.roomCode) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  el.textContent = usingPeer ? 'P2P Direct' : 'Server';
-  el.classList.toggle('peer', usingPeer);
+function requireBase44(errEl){
+  if(base44) return true;
+  const msg = 'Multiplayer backend not configured — set BASE44_APP_ID.';
+  if(errEl) errEl.textContent = msg; else console.error(msg);
+  return false;
 }
 
 // ═══════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════
-let localPeer = null;
-let gameConn = null;
-let activeRoomId = null;
+let localPeer = null;      // this browser's PeerJS Peer instance
+let gameConn = null;       // the open PeerJS DataConnection to the opponent
+let activeRoomId = null;   // Base44 row id for the room this client is tied to
+let connectToken = 0;      // bumped by leaveRoom()/new attempts so a stale async
+                            // callback from an abandoned host/join attempt can tell
+                            // it's stale and no-op instead of clobbering current state
 
 let selectedMode = '';
 let lobbyFormation = '';
@@ -715,152 +716,69 @@ let G = {
   connected:false
 };
 
-// ─── BASE44 + PEERJS HYBRID MATCHMAKING ───
-let localPeer = null;
-let gameConn = null;
-let activeRoomId = null;
+function updateConnBadge(){
+  const el = document.getElementById('connBadge');
+  const active = document.querySelector('.screen.active');
+  if (active && active.id === 'homeScreen') { el.style.display = 'none'; return; }
+  if (!G.roomCode) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.textContent = G.connected ? 'Connected' : 'Connecting…';
+  el.classList.toggle('peer', G.connected);
+}
 
-// Override your old 'send' helper so it uses PeerJS during gameplay
-function send(msg) {
+function send(msg){
   if (gameConn && gameConn.open) {
     gameConn.send(msg);
+  } else {
+    console.warn('send() called with no open connection', msg);
   }
 }
 
-// ─── 1. HOSTING A GAME ───
-async function hostGame() {
-  const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-  
-  localPeer = new Peer();
-  
-  localPeer.on('open', async (peerId) => {
-    // Create record in Base44 database table
-    const newRoom = await base44.entities.GameRooms.create({
-      roomCode: roomCode,
-      hostName: G.username,
-      hostPeerId: peerId,
-      status: 'waiting'
-    });
-    
-    activeRoomId = newRoom.id;
-    G.roomCode = roomCode;
-    G.mode = 'host';
-    
-    document.getElementById('lobbyCode').innerText = roomCode;
-    if(document.getElementById('slotName0')) document.getElementById('slotName0').innerText = G.username;
-    showScreen('lobbyScreen');
-    
-    // Poll Base44 table to see when a guest joins
-    pollForGuest(roomCode);
-  });
-
-  // When guest connects directly via PeerJS
-  localPeer.on('connection', (conn) => {
-    gameConn = conn;
-    setupPeerListeners();
-    if(typeof setLobbyStatus === 'function') setLobbyStatus('ready', 'Opponent connected via PeerJS!');
-    const startBtn = document.getElementById('lobbyStartBtn');
-    if(startBtn) startBtn.removeAttribute('disabled');
-  });
-}
-
-// Background poller for host to detect guest join
-async function pollForGuest(roomCode) {
-  const checkInterval = setInterval(async () => {
-    const rooms = await base44.entities.GameRooms.filter({ roomCode: roomCode });
-    if (rooms.length > 0 && rooms[0].guestName) {
-      if(document.getElementById('slotName1')) document.getElementById('slotName1').innerText = rooms[0].guestName;
-      if(document.getElementById('slot1')) document.getElementById('slot1').classList.add('filled');
-      clearInterval(checkInterval);
-    }
-  }, 2000);
-}
-
-
-// ─── 2. JOINING A GAME ───
-async function joinRoom() {
-  const codeInput = document.getElementById('joinCodeInput');
-  const roomCode = codeInput ? codeInput.value.trim() : '';
-  
-  if (roomCode.length !== 4) {
-    const errEl = document.getElementById('joinError');
-    if(errEl) errEl.innerText = "Enter a valid 4-digit code.";
-    return;
-  }
-
-  // Look up room in Base44 database
-  const rooms = await base44.entities.GameRooms.filter({ roomCode: roomCode });
-  if (rooms.length === 0) {
-    const errEl = document.getElementById('joinError');
-    if(errEl) errEl.innerText = "Room not found!";
-    return;
-  }
-
-  const room = rooms[0];
-  activeRoomId = room.id;
-  G.roomCode = roomCode;
-  G.mode = 'guest';
-
-  localPeer = new Peer();
-  
-  localPeer.on('open', async (guestPeerId) => {
-    // Update Base44 table with guest info & Peer ID
-    await base44.entities.GameRooms.update(room.id, {
-      guestName: G.username,
-      guestPeerId: guestPeerId,
-      status: 'ready'
-    });
-
-    // Directly connect to host via PeerJS
-    const conn = localPeer.connect(room.hostPeerId);
-    
-    conn.on('open', () => {
-      gameConn = conn;
-      setupPeerListeners();
-      showScreen('draftScreen');
-    });
-  });
-}
-
-
-// ─── 3. PEERJS DATA PIPELINE ───
-function setupPeerListeners() {
-  gameConn.on('data', (data) => {
-    if (typeof handleIncoming === 'function') {
-      handleIncoming(data);
-    }
-  });
-}
-
-
-// ─── SCREEN & LEAVE HELPERS ───
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const target = document.getElementById(id);
   if(target) target.classList.add('active');
-  if(typeof updateConnBadge === 'function') updateConnBadge();
+  updateConnBadge();
 }
 
+// Wires the PeerJS data channel — used whether we're the host (accepting an
+// incoming connection) or the guest (the one that initiated it).
+function setupPeerListeners(){
+  gameConn.on('data', data => handleIncoming(data));
+  gameConn.on('close', () => handleDisconnect());
+  gameConn.on('error', err => console.error('Data connection error', err));
+}
+
+// Tears down the current room: closes the P2P connection, destroys the
+// local Peer, and (best-effort, fire-and-forget) marks the Base44 row
+// closed if we created one, so a stale room with a dead peer ID can't
+// be matched by a future joiner.
 function leaveRoom(){
+  connectToken++; // invalidate any in-flight async callbacks from this room attempt
   if (gameConn) { try{ gameConn.close(); }catch(e){} gameConn = null; }
   if (localPeer) { try{ localPeer.destroy(); }catch(e){} localPeer = null; }
+  if (activeRoomId && base44) {
+    base44.entities.GameRooms.update(activeRoomId, { status: 'closed' }).catch(()=>{});
+  }
+  activeRoomId = null;
   G.roomCode = '';
   G.connected = false;
-  if(typeof updateConnBadge === 'function') updateConnBadge();
+  updateConnBadge();
 }
 
-// ─── central dispatcher for messages relayed from the other player (works for both transports) ───
+// Central dispatcher for every message the opponent sends over the data channel.
 function handleIncoming(data){
   switch(data.type){
     case 'JOIN':
       if(G.mode !== 'host') return;
       G.oppUsername = data.name;
       G.oppFormation = data.formation;
+      G.connected = true;
       document.getElementById('slotName1').textContent = data.name;
       document.getElementById('slot1').classList.add('filled');
-      G.connected = true;
       send({type:'HOST_INFO', name:G.username, hostFormation:lobbyFormation});
       checkLobbyReady();
+      updateConnBadge();
       break;
     case 'HOST_INFO':
       if(G.mode !== 'guest') return;
@@ -869,6 +787,7 @@ function handleIncoming(data){
       G.connected = true;
       resetJoinBtn();
       showGuestLobby();
+      updateConnBadge();
       break;
     case 'HOST_FORMATION_UPDATE':
       if(G.mode === 'guest') G.oppFormation = data.formation;
@@ -900,6 +819,7 @@ function handleIncoming(data){
       break;
   }
 }
+
 
 // ═══════════════════════════════════════════════
 //  QR CODE
@@ -958,39 +878,36 @@ function checkJoinReady(){
 document.getElementById('joinCodeInput').addEventListener('input', checkJoinReady);
 
 // ═══════════════════════════════════════════════
-//  HOST LOBBY
+//  HOST — create & run the lobby
 // ═══════════════════════════════════════════════
 function goToLobby(){
   leaveRoom();
   lobbyFormation = '';
-  const formRow = document.getElementById('lobbyFormationRow');
-  if(formRow) formRow.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('lobbyFormationRow').querySelectorAll('.form-btn').forEach(b=>b.classList.remove('selected'));
 
   document.getElementById('slotName0').textContent = G.username;
   document.getElementById('slot0').classList.add('filled');
   document.getElementById('slotName1').textContent = 'Waiting...';
   document.getElementById('slot1').classList.remove('filled');
   document.getElementById('lobbyStartBtn').disabled = true;
-  setLobbyStatus('waiting', 'Waiting for opponent to join...');
+  document.getElementById('lobbyCode').textContent = '—';
+  setLobbyStatus('waiting', 'Creating room…');
 
   G.mode = 'host';
   showScreen('lobbyScreen');
-  
-  // Replaced ensureSocket() with the new Base44 room creation logic
-  attemptCreateRoom();
+  createRoom();
 }
 
-async function attemptCreateRoom(){
-  const roomCode = String(Math.floor(1000 + Math.random() * 9000));
-  G.roomCode = roomCode;
-  document.getElementById('lobbyCode').textContent = roomCode;
-  if(typeof updateConnBadge === 'function') updateConnBadge();
+async function createRoom(attempt = 1){
+  const myToken = ++connectToken;
+  if(!requireBase44()){ setLobbyStatus('waiting', 'Multiplayer backend not configured.'); return; }
 
+  const roomCode = String(Math.floor(1000 + Math.random() * 9000));
   localPeer = new Peer();
 
   localPeer.on('open', async (peerId) => {
+    if (myToken !== connectToken) return; // user backed out while we were connecting
     try {
-      // Save room entry to Base44 data table using the universal GAME_ID
       const newRoom = await base44.entities.GameRooms.create({
         gameId: GAME_ID,
         roomCode: roomCode,
@@ -998,65 +915,44 @@ async function attemptCreateRoom(){
         hostPeerId: peerId,
         status: 'waiting'
       });
+      if (myToken !== connectToken) return; // stale by the time the write finished
+
       activeRoomId = newRoom.id;
-      
-      // Start polling Base44 for a guest to claim this room code
-      pollForGuest(roomCode);
+      G.roomCode = roomCode;
+      document.getElementById('lobbyCode').textContent = roomCode;
+      updateConnBadge();
+      setLobbyStatus('waiting', 'Waiting for opponent to join...');
     } catch (err) {
-      console.error("Base44 room create error, retrying...", err);
-      setTimeout(attemptCreateRoom, 1500);
+      console.error('Base44 room create error', err);
+      if (myToken !== connectToken) return;
+      if (attempt < 3) {
+        setLobbyStatus('waiting', 'Connection hiccup — retrying…');
+        setTimeout(()=>createRoom(attempt + 1), 1500);
+      } else {
+        setLobbyStatus('waiting', 'Could not create room. Check your connection and try again.');
+      }
     }
   });
 
-  // When a guest connects directly to host via PeerJS
+  // Fires when the guest's Peer connects directly to us.
   localPeer.on('connection', (conn) => {
+    if (myToken !== connectToken) { try{ conn.close(); }catch(e){} return; }
     gameConn = conn;
     setupPeerListeners();
-    setLobbyStatus('ready', 'Opponent connected!');
-    document.getElementById('lobbyStartBtn').disabled = false;
+    // Lobby UI (slot fill, oppUsername, checkLobbyReady) updates once the
+    // guest's JOIN message arrives via handleIncoming, not here — the data
+    // channel opening doesn't yet tell us who they are.
   });
-}
 
-// Background poller to check Base44 for the guest
-async function pollForGuest(roomCode) {
-  const checkInterval = setInterval(async () => {
-    try {
-      const rooms = await base44.entities.GameRooms.filter({ gameId: GAME_ID, roomCode: roomCode });
-      if (rooms.length > 0 && rooms[0].guestName) {
-        document.getElementById('slotName1').textContent = rooms[0].guestName;
-        document.getElementById('slot1').classList.add('filled');
-        clearInterval(checkInterval);
-      }
-    } catch(e) {}
-  }, 2000);
-}
-
-  setTimeout(()=>{
-    if(!usingPeer && (!ackReceived || !hasConnectedOnce)){
-      startHostPeerFallback();
-    }
-  }, FALLBACK_TIMEOUT_MS);
-}
-
-function startHostPeerFallback(){
-  if(usingPeer) return;
-  usingPeer = true;
-  updateConnBadge();
-  setLobbyStatus('waiting', 'Server unreachable — switching to direct P2P...');
-
-  peer = new Peer(getPeerId(G.roomCode));
-  peer.on('open', ()=>{
-    setLobbyStatus('waiting', 'Waiting for opponent to join (P2P)...');
+  localPeer.on('disconnected', () => {
+    if (myToken !== connectToken) return;
+    localPeer.reconnect();
   });
-  peer.on('connection', (conn)=>{
-    peerConn = conn;
-    conn.on('open', ()=>{ /* handshake completes via JOIN/HOST_INFO messages */ });
-    conn.on('data', (data)=> handleIncoming(data));
-    conn.on('close', ()=> handleDisconnect());
-  });
-  peer.on('error', (err)=>{
+
+  localPeer.on('error', (err) => {
     console.error('PeerJS host error', err);
-    setLobbyStatus('waiting', 'P2P connection failed — try creating a new room.');
+    if (myToken !== connectToken) return;
+    setLobbyStatus('waiting', 'Connection error — try creating a new room.');
   });
 }
 
@@ -1066,7 +962,6 @@ function checkLobbyReady(){
   const guestPicked= G.oppFormation !== '';
   const canStart   = guestIn && hostPicked && guestPicked;
   document.getElementById('lobbyStartBtn').disabled = !canStart;
-  updateConnBadge();
 
   if(canStart){
     setLobbyStatus('ready', 'Both players ready — start the draft!');
@@ -1074,7 +969,7 @@ function checkLobbyReady(){
     setLobbyStatus('waiting', G.oppUsername + ' joined! Waiting for their formation...');
   } else if(guestIn && !hostPicked){
     setLobbyStatus('waiting', G.oppUsername + ' joined! Pick your formation to continue.');
-  } else if (!usingPeer) {
+  } else {
     setLobbyStatus('waiting', 'Waiting for opponent to join...');
   }
 }
@@ -1093,144 +988,117 @@ function startDraft(){
 }
 
 // ═══════════════════════════════════════════════
-//  JOIN ROOM
+//  GUEST — find & join a room
 // ═══════════════════════════════════════════════
 async function joinRoom(){
   const codeInput = document.getElementById('joinCodeInput');
   const code = codeInput ? codeInput.value.trim() : '';
   const errEl = document.getElementById('joinError');
   if(errEl) errEl.textContent = '';
-  
-  if(code.length !== 4){ 
-    if(errEl) errEl.textContent = 'Enter a 4-digit code.'; 
-    return; 
-  }
-  if(!joinFormation){ 
-    if(errEl) errEl.textContent = 'Pick a formation first.'; 
-    return; 
-  }
+
+  if(code.length !== 4){ if(errEl) errEl.textContent = 'Enter a 4-digit code.'; return; }
+  if(!joinFormation){ if(errEl) errEl.textContent = 'Pick a formation first.'; return; }
+  if(!requireBase44(errEl)) return;
 
   const joinBtn = document.getElementById('joinBtn');
-  if(joinBtn) {
-    joinBtn.disabled = true;
-    joinBtn.textContent = 'CONNECTING...';
-  }
+  if(joinBtn){ joinBtn.disabled = true; joinBtn.textContent = 'CONNECTING...'; }
 
   leaveRoom();
+  const myToken = connectToken; // leaveRoom() just bumped it — capture the new value
   G.myFormation = joinFormation;
   G.mode = 'guest';
 
+  let room;
   try {
-    // Look up room code in Base44 database matching your universal GAME_ID
-    const rooms = await base44.entities.GameRooms.filter({ gameId: GAME_ID, roomCode: code });
-    if (rooms.length === 0) {
+    const rooms = await base44.entities.GameRooms.filter(
+      { gameId: GAME_ID, roomCode: code, status: 'waiting' },
+      '-created_date', 1
+    );
+    if (myToken !== connectToken) return; // user backed out mid-lookup
+    if (!rooms.length) {
       if(errEl) errEl.textContent = 'Room not found. Check the code and try again.';
       resetJoinBtn();
       return;
     }
-
-    const room = rooms[0];
+    room = rooms[0];
     activeRoomId = room.id;
-
-    localPeer = new Peer();
-
-    localPeer.on('open', async (guestPeerId) => {
-      // Update Base44 entry with guest details & Peer ID so the host knows who connected
-      await base44.entities.GameRooms.update(room.id, {
-        guestName: G.username,
-        guestPeerId: guestPeerId,
-        status: 'ready'
-      });
-
-      // Directly connect to the host's PeerJS ID
-      const conn = localPeer.connect(room.hostPeerId);
-
-      conn.on('open', () => {
-        gameConn = conn;
-        setupPeerListeners();
-        G.roomCode = code;
-        if(typeof updateConnBadge === 'function') updateConnBadge();
-        
-        send({type:'JOIN', name:G.username, formation:joinFormation});
-        showScreen('draftScreen');
-      });
-
-      conn.on('error', () => {
-        if(errEl) errEl.textContent = 'Could not connect via PeerJS. Try again.';
-        resetJoinBtn();
-      });
-    });
-
   } catch (err) {
-    if(errEl) errEl.textContent = 'Could not connect. Try again.';
-    resetJoinBtn();
-  }
-}
-
-function resetJoinBtn() {
-  const joinBtn = document.getElementById('joinBtn');
-  if(joinBtn) {
-    joinBtn.disabled = false;
-    joinBtn.textContent = 'JOIN GAME';
-  }
-}
-
-function startGuestPeerFallback(code){
-  if(usingPeer) return;
-  usingPeer = true;
-  G.roomCode = code;
-  updateConnBadge();
-  const errEl = document.getElementById('joinError');
-  errEl.textContent = 'Server unreachable — trying direct P2P connection...';
-
-  peer = new Peer();
-  peer.on('open', ()=>{
-    connectToHostPeer(code, 0);
-  });
-  peer.on('error', (err)=>{
-    console.error('PeerJS guest error', err);
-  });
-}
-
-function connectToHostPeer(code, attempt){
-  const conn = peer.connect(getPeerId(code));
-  let settled = false;
-
-  conn.on('open', ()=>{
-    settled = true;
-    peerConn = conn;
-    G.connected = true;
-    G.roomCode = code;
-    resetJoinBtn();
-    document.getElementById('joinError').textContent = '';
-    send({type:'JOIN', name:G.username, formation:joinFormation});
-  });
-  conn.on('data', data=>handleIncoming(data));
-  conn.on('close', ()=>handleDisconnect());
-  conn.on('error', ()=>{
-    if(settled) return;
-    retryHostPeerConnect(code, attempt);
-  });
-
-  setTimeout(()=>{
-    if(!settled) retryHostPeerConnect(code, attempt);
-  }, 4000);
-}
-
-function retryHostPeerConnect(code, attempt){
-  if (peerConn) return;
-  if(attempt >= 6){
-    document.getElementById('joinError').textContent = 'Could not reach host — check the code and that both players are online.';
+    console.error('Base44 room lookup error', err);
+    if (myToken !== connectToken) return;
+    if(errEl) errEl.textContent = 'Could not reach the matchmaking server. Try again.';
     resetJoinBtn();
     return;
   }
-  setTimeout(()=>connectToHostPeer(code, attempt+1), 2500);
+
+  localPeer = new Peer();
+
+  localPeer.on('error', (err) => {
+    console.error('PeerJS guest error', err);
+    if (myToken !== connectToken) return;
+    if(errEl) errEl.textContent = 'Connection error. Try again.';
+    resetJoinBtn();
+  });
+
+  localPeer.on('disconnected', () => {
+    if (myToken !== connectToken) return;
+    localPeer.reconnect();
+  });
+
+  localPeer.on('open', () => {
+    if (myToken !== connectToken) return;
+    connectToHost(room.hostPeerId, code, myToken, 1);
+  });
+}
+
+function connectToHost(hostPeerId, code, myToken, attempt){
+  const errEl = document.getElementById('joinError');
+  const conn = localPeer.connect(hostPeerId, { reliable: true });
+  let settled = false;
+
+  const timeout = setTimeout(() => {
+    if (settled || myToken !== connectToken) return;
+    try{ conn.close(); }catch(e){}
+    if (attempt < 3) {
+      if(errEl) errEl.textContent = 'Still trying to reach the host… (' + (attempt+1) + '/3)';
+      connectToHost(hostPeerId, code, myToken, attempt + 1);
+    } else {
+      if(errEl) errEl.textContent = 'Could not reach host — check the code and that both players are online.';
+      resetJoinBtn();
+    }
+  }, 6000);
+
+  conn.on('open', () => {
+    settled = true;
+    clearTimeout(timeout);
+    if (myToken !== connectToken) { try{ conn.close(); }catch(e){} return; }
+    gameConn = conn;
+    setupPeerListeners();
+    G.roomCode = code;
+    G.connected = true;
+    updateConnBadge();
+    if(errEl) errEl.textContent = '';
+    send({type:'JOIN', name:G.username, formation:joinFormation});
+    // Best-effort record-keeping — the P2P link is already live, so this
+    // doesn't gate anything and failures here are non-fatal.
+    if (activeRoomId && base44) {
+      base44.entities.GameRooms.update(activeRoomId, {
+        guestName: G.username, status: 'active'
+      }).catch(()=>{});
+    }
+    showScreen('draftScreen');
+  });
+
+  conn.on('error', (err) => {
+    console.error('Data connection error', err);
+    settled = true;
+    clearTimeout(timeout);
+  });
 }
 
 function resetJoinBtn(){
   const btn = document.getElementById('joinBtn');
-  btn.disabled = false;
-  btn.textContent = 'JOIN ROOM';
+  if(!btn) return;
+  btn.textContent = 'JOIN GAME';
   checkJoinReady();
 }
 
@@ -1242,7 +1110,6 @@ function showGuestLobby(){
   document.getElementById('slot1').classList.add('filled');
   document.getElementById('lobbyStartBtn').style.display = 'none';
   document.getElementById('lobbyFormationRow').style.display = 'none';
-  document.querySelectorAll('#lobbyScreen > [style*="Choose"]').forEach(el=>el.style.display='none');
   setLobbyStatus('waiting', 'Waiting for host to start the draft...');
   showScreen('lobbyScreen');
 }
