@@ -685,6 +685,16 @@ let base44 = null;
   }
 })();
 
+// Turns any thrown error into a short, human-readable string for on-screen
+// display — needed because not everyone testing this can get to DevTools
+// (e.g. managed/school Chromebooks that block it outright).
+function describeError(err){
+  if (!err) return 'unknown error';
+  const status = err.status || (err.response && err.response.status);
+  const msg = err.message || (typeof err === 'string' ? err : JSON.stringify(err));
+  return status ? '[' + status + '] ' + msg : msg;
+}
+
 function requireBase44(errEl){
   if(base44) return true;
   const msg = 'Multiplayer backend not configured — set BASE44_APP_ID.';
@@ -929,7 +939,7 @@ async function createRoom(attempt = 1){
         setLobbyStatus('waiting', 'Connection hiccup — retrying…');
         setTimeout(()=>createRoom(attempt + 1), 1500);
       } else {
-        setLobbyStatus('waiting', 'Could not create room. Check your connection and try again.');
+        setLobbyStatus('waiting', 'Could not create room: ' + describeError(err));
       }
     }
   });
@@ -952,7 +962,7 @@ async function createRoom(attempt = 1){
   localPeer.on('error', (err) => {
     console.error('PeerJS host error', err);
     if (myToken !== connectToken) return;
-    setLobbyStatus('waiting', 'Connection error — try creating a new room.');
+    setLobbyStatus('waiting', 'Connection error: ' + describeError(err));
   });
 }
 
@@ -1025,7 +1035,7 @@ async function joinRoom(){
   } catch (err) {
     console.error('Base44 room lookup error', err);
     if (myToken !== connectToken) return;
-    if(errEl) errEl.textContent = 'Could not reach the matchmaking server. Try again.';
+    if(errEl) errEl.textContent = 'Could not reach matchmaking server: ' + describeError(err);
     resetJoinBtn();
     return;
   }
@@ -1035,7 +1045,7 @@ async function joinRoom(){
   localPeer.on('error', (err) => {
     console.error('PeerJS guest error', err);
     if (myToken !== connectToken) return;
-    if(errEl) errEl.textContent = 'Connection error. Try again.';
+    if(errEl) errEl.textContent = 'Connection error: ' + describeError(err);
     resetJoinBtn();
   });
 
