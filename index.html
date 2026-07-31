@@ -678,7 +678,7 @@ const BASE44_APP_ID = "6a6a39f45047f242897fc81a";
 let base44 = null;
 (async () => {
   try {
-    const { createClient } = await import('https://esm.sh/@base44/sdk');
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@base44/sdk/+esm');
     base44 = createClient({ appId: BASE44_APP_ID });
   } catch (err) {
     console.error('Base44 SDK failed to load — multiplayer matchmaking is unavailable.', err);
