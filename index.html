@@ -768,7 +768,7 @@ function leaveRoom(){
   if (gameConn) { try{ gameConn.close(); }catch(e){} gameConn = null; }
   if (localPeer) { try{ localPeer.destroy(); }catch(e){} localPeer = null; }
   if (activeRoomId && base44) {
-    base44.entities.GameRooms.update(activeRoomId, { status: 'closed' }).catch(()=>{});
+    base44.entities.GameRooms.update(activeRoomId, { status: 'ended' }).catch(()=>{});
   }
   activeRoomId = null;
   G.roomCode = '';
