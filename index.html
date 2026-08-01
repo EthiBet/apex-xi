@@ -683,6 +683,29 @@ let base44 = null;
   }
 })();
 
+// ═══════════════════════════════════════════════
+//  TURN SERVER (optional — fallback for restrictive networks)
+//  STUN alone (the Google server below) gets most players connected
+//  directly. TURN is a relay of last resort for networks that block
+//  direct P2P outright — corporate/school firewalls, some carrier
+//  networks, symmetric NAT. Free tier via metered.ca: sign up, create
+//  an app, paste its subdomain + API key below. Leave the placeholder
+//  in place and it just runs on STUN only, same as before.
+// ═══════════════════════════════════════════════
+const METERED_APP_NAME = "game-turn";
+const METERED_API_KEY = "wR5715kDMjfFjv408SzC8szhEF0_K9WHpRh4XwzdkZdJ1cgJ";
+let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+const iceServersReady = (async () => {
+  if (METERED_APP_NAME === "YOUR-METERED-APP-NAME" || !METERED_APP_NAME) return;
+  try {
+    const res = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+    const servers = await res.json();
+    if (Array.isArray(servers) && servers.length) iceServers = servers;
+  } catch (err) {
+    console.error('TURN credential fetch failed — falling back to STUN only.', err);
+  }
+})();
+
 // Turns any thrown error into a short, human-readable string for on-screen
 // display — needed because not everyone testing this can get to DevTools
 // (e.g. managed/school Chromebooks that block it outright).
@@ -910,7 +933,8 @@ async function createRoom(attempt = 1){
   if(!requireBase44()){ setLobbyStatus('waiting', 'Multiplayer backend not configured.'); return; }
 
   const roomCode = String(Math.floor(1000 + Math.random() * 9000));
-  localPeer = new Peer();
+  await iceServersReady;
+  localPeer = new Peer({ config: { iceServers } });
 
   localPeer.on('open', async (peerId) => {
     if (myToken !== connectToken) return; // user backed out while we were connecting
@@ -1037,7 +1061,8 @@ async function joinRoom(){
     return;
   }
 
-  localPeer = new Peer();
+  await iceServersReady;
+  localPeer = new Peer({ config: { iceServers } });
 
   localPeer.on('error', (err) => {
     console.error('PeerJS guest error', err);
