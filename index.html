@@ -169,7 +169,7 @@ input[type=text]::placeholder{color:var(--muted)}
 .pitch-lines svg{width:100%;height:100%}
 
 /* SLOTS */
-.pslot{position:absolute;transform:translate(-50%,-50%);width:98px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform 0.15s,width 0.15s;user-select:none}
+.pslot{position:absolute;transform:translate(-50%,-50%);width:var(--pslot-size, 98px);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform 0.15s,width 0.15s;user-select:none}
 .pslot:hover{transform:translate(-50%,-50%) scale(1.08)}
 .pslot-img{width:100%;aspect-ratio:1170/1600;border-radius:9px;background:rgba(0,0,0,0.45);border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:border-color 0.2s,box-shadow 0.2s;backdrop-filter:blur(2px)}
 .pslot-img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:7px}
@@ -178,8 +178,6 @@ input[type=text]::placeholder{color:var(--muted)}
 .pslot.available:hover .pslot-img{box-shadow:0 0 16px rgba(232,184,75,0.6);animation:none}
 .pslot.filled .pslot-img{border:none;background:transparent;backdrop-filter:none;box-shadow:none}
 .pslot.active .pslot-img{border-color:var(--gold2);box-shadow:0 0 20px rgba(232,184,75,0.7);animation:none}
-@media(max-width:980px){.pslot{width:80px}}
-@media(max-width:700px){.pslot{width:clamp(56px,18vw,84px)}}
 @keyframes slotpulse{0%,100%{box-shadow:0 0 0 0 rgba(232,184,75,0.5)}50%{box-shadow:0 0 0 6px rgba(232,184,75,0)}}
 
 /* SELECTION PANEL (inner elements) */
@@ -313,6 +311,7 @@ input[type=text]::placeholder{color:var(--muted)}
     <div class="form-btn" data-f="3-5-2" onclick="pickFormation(this,'lobby')">3-5-2<div class="form-sub">Width</div></div>
     <div class="form-btn" data-f="5-4-1" onclick="pickFormation(this,'lobby')">5-4-1<div class="form-sub">Fortress</div></div>
     <div class="form-btn" data-f="5-2-1-2" onclick="pickFormation(this,'lobby')">5-2-1-2<div class="form-sub">Counter</div></div>
+    <div class="form-btn" data-f="4-5-1" onclick="pickFormation(this,'lobby')">4-5-1<div class="form-sub">Shield</div></div>
   </div>
   <div class="lobby-status" id="lobbyStatus"><span class="pulse-dot"></span>Waiting for opponent to join...</div>
   <button class="btn btn-gold" id="lobbyStartBtn" onclick="startDraft()" disabled>Start Draft</button>
@@ -338,6 +337,7 @@ input[type=text]::placeholder{color:var(--muted)}
     <div class="form-btn" data-f="3-5-2" onclick="pickFormation(this,'join')">3-5-2<div class="form-sub">Width</div></div>
     <div class="form-btn" data-f="5-4-1" onclick="pickFormation(this,'join')">5-4-1<div class="form-sub">Fortress</div></div>
     <div class="form-btn" data-f="5-2-1-2" onclick="pickFormation(this,'join')">5-2-1-2<div class="form-sub">Counter</div></div>
+    <div class="form-btn" data-f="4-5-1" onclick="pickFormation(this,'join')">4-5-1<div class="form-sub">Shield</div></div>
   </div>
   <button class="btn btn-green" id="joinBtn" onclick="joinRoom()" disabled>JOIN GAME</button>
   <div class="error-msg" id="joinError"></div>
@@ -645,7 +645,8 @@ const FORMATIONS={
   "3-4-3":{positions:["GK","LW","ST","RW","LM","CM","CM","RM","CB","CB","CB"],coords:[[50,88],[14,18],[50,12],[86,18],[10,46],[34,46],[66,46],[90,46],[25,68],[50,68],[75,68]]},
   "3-5-2":{positions:["GK","ST","ST","LM","CDM","CM","CAM","RM","CB","CB","CB"],coords:[[50,88],[32,10],[68,10],[10,42],[30,42],[50,42],[70,42],[90,42],[25,68],[50,68],[75,68]]},
   "5-4-1":{positions:["GK","ST","LM","CM","CM","RM","LB","CB","CB","CB","RB"],coords:[[50,88],[50,10],[10,42],[34,42],[66,42],[90,42],[8,66],[28,66],[50,66],[72,66],[92,66]]},
-  "5-2-1-2":{positions:["GK","ST","ST","CAM","CM","CM","LB","CB","CB","CB","RB"],coords:[[50,88],[30,10],[70,10],[50,28],[30,46],[70,46],[8,68],[28,68],[50,68],[72,68],[92,68]]}
+  "5-2-1-2":{positions:["GK","ST","ST","CAM","CM","CM","LB","CB","CB","CB","RB"],coords:[[50,88],[30,10],[70,10],[50,28],[30,46],[70,46],[8,68],[28,68],[50,68],[72,68],[92,68]]},
+  "4-5-1":{positions:["GK","ST","LM","CM","CM","CM","RM","LB","CB","CB","RB"],coords:[[50,88],[50,10],[8,44],[28,44],[50,44],[72,44],[92,44],[10,66],[35,66],[65,66],[90,66]]}
 };
 
 // ═══════════════════════════════════════════════
@@ -1227,10 +1228,48 @@ function initDraft(){
 // ═══════════════════════════════════════════════
 //  PITCH
 // ═══════════════════════════════════════════════
+// Computes the largest card width that provably can't overlap any pair of
+// slots in the current formation, given the pitch's real rendered size right
+// now (it has no fixed CSS aspect-ratio, so this can't be hard-coded — it
+// has to be measured). Safe to call anytime, including mid-draft on resize,
+// since it only touches sizing, never slot content.
+function updatePitchSlotSize(){
+  const container = document.getElementById('pitchSlots');
+  if(!container || !G.myFormation) return;
+  const coords = FORMATIONS[G.myFormation].coords;
+  const rect = container.getBoundingClientRect();
+  if(rect.width < 1 || rect.height < 1) return; // not laid out yet
+  const CARD_RATIO = 898/640; // height = width * this, from the actual card images
+  let maxSafeWidth = Infinity;
+  for(let i=0; i<coords.length; i++){
+    for(let j=i+1; j<coords.length; j++){
+      const dxPx = Math.abs(coords[i][0]-coords[j][0])/100 * rect.width;
+      const dyPx = Math.abs(coords[i][1]-coords[j][1])/100 * rect.height;
+      // Two cards (each W wide, W*CARD_RATIO tall, centered on their point)
+      // can't overlap as long as EITHER their horizontal gap covers both
+      // widths OR their vertical gap covers both heights. The largest W that
+      // keeps a given pair safe is whichever condition is easier to satisfy.
+      const safeForPair = Math.max(dxPx, dyPx/CARD_RATIO);
+      maxSafeWidth = Math.min(maxSafeWidth, safeForPair);
+    }
+  }
+  // Leave a small buffer so cards never render edge-to-edge, and never go
+  // below a legible minimum or above a sensible maximum on huge screens.
+  const cardWidth = Math.max(56, Math.min(112, Math.floor(maxSafeWidth * 0.92)));
+  container.style.setProperty('--pslot-size', cardWidth + 'px');
+}
+let pitchResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(pitchResizeTimer);
+  pitchResizeTimer = setTimeout(updatePitchSlotSize, 150);
+});
+
 function buildPitch(){
   const container = document.getElementById('pitchSlots');
   container.innerHTML = '';
-  FORMATIONS[G.myFormation].coords.forEach((coord, i)=>{
+  const coords = FORMATIONS[G.myFormation].coords;
+  updatePitchSlotSize();
+  coords.forEach((coord, i)=>{
     const div = document.createElement('div');
     div.className = 'pslot available';
     div.id = 'pslot_' + i;
